@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">QuickVoice</string>
+    <string name="reminder_channel_name">Task Reminders</string>
+    <string name="reminder_channel_desc">Channel for time-sensitive task reminders</string>
+    <string name="widget_name">QuickVoice Tasks</string>
+    <string name="widget_description">Displays active tasks and quick voice capture shortcut</string>
+</resources>
+

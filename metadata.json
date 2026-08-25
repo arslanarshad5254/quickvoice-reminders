@@ -1,0 +1,7 @@
+{
+  "name": "QuickVoice Reminders",
+  "description": "Fast voice and natural-language reminder utility powered by Gemini AI and offline-first Room database.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

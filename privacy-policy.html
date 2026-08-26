@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - QuickVoice Reminders</title>
+    <style>
+        :root {
+            --primary: #2563EB;
+            --primary-dark: #1E40AF;
+            --primary-light: #3B82F6;
+            --accent: #10B981;
+            --bg: #F8FAFC;
+            --surface: #FFFFFF;
+            --text: #1E293B;
+            --text-secondary: #64748B;
+            --border: #E2E8F0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --radius: 12px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0F172A;
+                --surface: #1E293B;
+                --text: #F1F5F9;
+                --text-secondary: #94A3B8;
+                --border: #334155;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 60px 30px 50px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header .last-updated {
+            font-size: 0.95em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        .intro {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .intro p {
+            font-size: 1.05em;
+            color: var(--text-secondary);
+        }
+
+        .toc {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+        }
+
+        .toc h2 {
+            font-size: 1.3em;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toc h2::before {
+            content: '📋';
+        }
+
+        .toc-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .toc-list a {
+            display: block;
+            padding: 12px 16px;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            font-size: 0.95em;
+        }
+
+        .toc-list a:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .section {
+            background: var(--surface);
+            padding: 35px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .section h2 {
+            color: var(--primary);
+            font-size: 1.5em;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-num {
+            background: var(--primary);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .section h3 {
+            color: var(--text);
+            font-size: 1.15em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .section h4 {
+            color: var(--primary-dark);
+            font-size: 1em;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .section p {
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+            text-align: justify;
+        }
+
+        .section ul {
+            margin-bottom: 20px;
+            padding-left: 0;
+        }
+
+        .section li {
+            margin-bottom: 12px;
+            padding: 12px 16px;
+            background: var(--bg);
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-light);
+            color: var(--text-secondary);
+        }
+
+        .section li strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: var(--text) !important;
+        }
+
+        .contact-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 35px;
+            border-radius: var(--radius);
+            margin-top: 20px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .contact-box h3 {
+            color: white;
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+
+        .contact-box p {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .contact-box ul {
+            list-style: none;
+        }
+
+        .contact-box li {
+            background: rgba(255,255,255,0.15);
+            border-left-color: white;
+            color: white;
+        }
+
+        .contact-box a {
+            color: white;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .contact-box a:hover {
+            opacity: 0.9;
+        }
+
+        .footer {
+            background: var(--surface);
+            margin-top: 60px;
+            padding: 40px 30px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .footer .brand {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            font-size: 1.3em;
+            z-index: 1000;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            background: var(--primary-dark);
+            transform: translateY(-3px);
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 40px 20px 35px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .container {
+                padding: 20px 15px;
+            }
+
+            .section {
+                padding: 25px 20px;
+            }
+
+            .toc-list {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-box {
+                padding: 25px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: August 25, 2026</p>
+    </div>
+
+    <div class="container">
+        <div class="intro">
+            <p>This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.</p>
+            <p style="margin-top: 12px; margin-bottom: 0;">We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy.</p>
+        </div>
+
+        <nav class="toc">
+            <h2>Table of Contents</h2>
+            <ul class="toc-list">
+                <li><a href="#interpretation">1. Interpretation and Definitions</a></li>
+                <li><a href="#collecting">2. Collecting and Using Your Personal Data</a></li>
+                <li><a href="#permissions">3. Permissions</a></li>
+                <li><a href="#third-party">4. Third-Party Services and Data Transfer</a></li>
+                <li><a href="#retention">5. Retention and Security of Your Data</a></li>
+                <li><a href="#children">6. Children's Privacy</a></li>
+                <li><a href="#rights">7. Your Data Protection Rights</a></li>
+                <li><a href="#changes">8. Changes to this Privacy Policy</a></li>
+                <li><a href="#contact">9. Contact Us</a></li>
+            </ul>
+        </nav>
+
+        <div class="section" id="interpretation">
+            <h2><span class="section-num">1</span> Interpretation and Definitions</h2>
+            <h3>Interpretation</h3>
+            <p>The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.</p>
+
+            <h3>Definitions</h3>
+            <ul>
+                <li><strong>Account:</strong> means a unique account created for You to access our Service or parts of our Service.</li>
+                <li><strong>Affiliate:</strong> means an entity that controls, is controlled by or is under common control with a party.</li>
+                <li><strong>Application:</strong> refers to QuickVoice Reminders, the software program provided by the Company.</li>
+                <li><strong>Company:</strong> (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Xovrix.</li>
+                <li><strong>Country:</strong> refers to Pakistan.</li>
+                <li><strong>Device:</strong> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</li>
+                <li><strong>Personal Data:</strong> is any information that relates to an identified or identifiable individual.</li>
+                <li><strong>Service:</strong> refers to the Application.</li>
+                <li><strong>Usage Data:</strong> refers to data collected automatically, either generated by the use of the Service or from the Service infrastructure itself.</li>
+            </ul>
+        </div>
+
+        <div class="section" id="collecting">
+            <h2><span class="section-num">2</span> Collecting and Using Your Personal Data</h2>
+            <h3>Types of Data Collected</h3>
+
+            <h4>Personal Data</h4>
+            <p>While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:</p>
+            <ul>
+                <li>Email address (when contacting support or using billing services)</li>
+                <li>Usage Data</li>
+            </ul>
+
+            <h4>Usage Data</h4>
+            <p>Usage Data is collected automatically when using the Service.</p>
+            <p>Usage Data may include information such as Your Device's Internet Protocol address (e.g. IP address), browser type, browser version, the pages of our Service that You visit, the time and date of Your visit, the time spent on those pages, unique device identifiers and other diagnostic data.</p>
+            <p>When You access the Service by or through a mobile device, We may collect certain information automatically, including, but not limited to, the type of mobile device You use, Your mobile device unique ID, the IP address of Your mobile device, Your mobile operating system, the type of mobile Internet browser You use, unique device identifiers and other diagnostic data.</p>
+
+            <h4>Audio and Voice Information</h4>
+            <p>The Application requires access to Your device's microphone to provide its core functionality (voice-to-text reminders). Audio is processed in real-time. If You have provided a Gemini AI API key, the transcript of Your audio may be sent to Google Gemini AI services for high-accuracy parsing. <span class="highlight">We do not store raw audio files on Our own servers.</span></p>
+
+            <h4>Information Stored Locally</h4>
+            <p>The Application stores Your reminders, tasks, categories, and settings <span class="highlight">locally on Your device</span> using an encrypted Room database. We do not have access to Your personal reminders, and they are not synchronized to Our servers unless You explicitly use a third-party backup service provided by Your device OS (e.g., Google Drive backup).</p>
+
+            <h3>Use of Your Personal Data</h3>
+            <p>The Company may use Personal Data for the following purposes:</p>
+            <ul>
+                <li><strong>To provide and maintain our Service</strong>, including to monitor the usage of our Service.</li>
+                <li><strong>To manage Your requests:</strong> To attend and manage Your requests to Us.</li>
+                <li><strong>For the performance of a contract:</strong> the development, compliance and undertaking of the purchase contract for the products, items or services You have purchased.</li>
+                <li><strong>To provide You with news, special offers and general information</strong> about other goods, services and events which we offer.</li>
+            </ul>
+        </div>
+
+        <div class="section" id="permissions">
+            <h2><span class="section-num">3</span> Permissions</h2>
+            <p>To function correctly, the App requests the following permissions:</p>
+            <ul>
+                <li><strong>Microphone (RECORD_AUDIO):</strong> Used to capture voice input for reminders.</li>
+                <li><strong>Notifications (POST_NOTIFICATIONS):</strong> Used to send you alerts for your scheduled reminders.</li>
+                <li><strong>Alarms (SCHEDULE_EXACT_ALARM):</strong> Used to ensure reminders trigger precisely at the requested time.</li>
+            </ul>
+        </div>
+
+        <div class="section" id="third-party">
+            <h2><span class="section-num">4</span> Third-Party Services and Data Transfer</h2>
+            <p>The Application uses third-party services that may collect information used to identify you. We encourage you to read their privacy policies:</p>
+            <ul>
+                <li><strong>Google AdMob:</strong> Used to display advertisements. AdMob may collect data such as advertising IDs (GAID) and device information for personalized or non-personalized ads.</li>
+                <li><strong>Google Play Billing:</strong> Used for in-app purchases (Pro Upgrade). All payment processing is handled securely by Google. We do not store Your credit card information.</li>
+                <li><strong>Google Gemini AI (Vertex AI):</strong> Used to parse natural language into structured reminders. Data sent to this service is subject to Google's Privacy Policy.</li>
+            </ul>
+        </div>
+
+        <div class="section" id="retention">
+            <h2><span class="section-num">5</span> Retention and Security of Your Data</h2>
+            <p>The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy. Since reminder data is stored locally, it is retained until You delete the reminder or uninstall the Application.</p>
+            <p>The security of Your Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure. While We strive to use commercially acceptable means to protect Your Personal Data, We cannot guarantee its absolute security.</p>
+        </div>
+
+        <div class="section" id="children">
+            <h2><span class="section-num">6</span> Children's Privacy</h2>
+            <p>Our Service does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from anyone under the age of 13. If You are a parent or guardian and You are aware that Your child has provided Us with Personal Data, please contact Us. If We become aware that We have collected Personal Data from anyone under the age of 13 without verification of parental consent, We take steps to remove that information from Our servers (if any).</p>
+        </div>
+
+        <div class="section" id="rights">
+            <h2><span class="section-num">7</span> Your Data Protection Rights (GDPR/CCPA)</h2>
+            <p>Depending on Your location, You may have the following rights regarding Your data:</p>
+            <ul>
+                <li>The right to access, update or delete the information We have on You.</li>
+                <li>The right of rectification.</li>
+                <li>The right to object or restrict processing.</li>
+                <li>The right to data portability.</li>
+            </ul>
+        </div>
+
+        <div class="section" id="changes">
+            <h2><span class="section-num">8</span> Changes to this Privacy Policy</h2>
+            <p>We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date at the top of this Privacy Policy.</p>
+        </div>
+
+        <div class="section" id="contact">
+            <h2><span class="section-num">9</span> Contact Us</h2>
+            <div class="contact-box">
+                <h3>Have questions?</h3>
+                <p>If you have any questions about this Privacy Policy, You can contact us:</p>
+                <ul>
+                    <li>By email: <strong>info@xovrix.org</strong></li>
+                    <li>By visiting our website: <a href="https://xovrix.org" target="_blank">https://xovrix.org</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 Xovrix. All rights reserved.</p>
+        <p><span class="brand">QuickVoice Reminders</span> - Fast, Private, AI-Powered.</p>
+    </footer>
+
+    <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Back to top">↑</button>
+
+    <script>
+        const backToTopBtn = document.querySelector('.back-to-top');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        });
+    </script>
+
+</body>
+</html>

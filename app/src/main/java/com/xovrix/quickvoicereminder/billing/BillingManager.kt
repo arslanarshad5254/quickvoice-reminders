@@ -32,7 +32,7 @@ class BillingManager(
     private val _isAdsFree = MutableStateFlow(prefs.getBoolean(KEY_IS_ADS_FREE, false))
     val isAdsFree: StateFlow<Boolean> = _isAdsFree.asStateFlow()
 
-    private val _formattedPrice = MutableStateFlow("$1.00 / month")
+    private val _formattedPrice = MutableStateFlow("$5.00 / month")
     val formattedPrice: StateFlow<String> = _formattedPrice.asStateFlow()
 
     private val _productDetails = MutableStateFlow<ProductDetails?>(null)

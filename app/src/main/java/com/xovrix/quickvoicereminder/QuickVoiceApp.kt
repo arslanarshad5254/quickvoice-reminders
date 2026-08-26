@@ -5,11 +5,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import com.xovrix.quickvoicereminder.alarm.ReminderAlarmReceiver
 import com.xovrix.quickvoicereminder.billing.BillingManager
 import com.xovrix.quickvoicereminder.data.AppDatabase
 import com.xovrix.quickvoicereminder.data.TaskRepository
+import com.xovrix.quickvoicereminder.data.SettingsManager
 import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,11 +31,15 @@ class QuickVoiceApp : Application() {
     lateinit var billingManager: BillingManager
         private set
 
+    lateinit var settingsManager: SettingsManager
+        private set
+
     override fun onCreate() {
         super.onCreate()
         database = AppDatabase.getDatabase(this)
         repository = TaskRepository(this, database.taskDao())
         billingManager = BillingManager(this, applicationScope)
+        settingsManager = SettingsManager(this)
         initNotificationChannels()
         
         CoroutineScope(Dispatchers.IO).launch {
@@ -45,14 +51,17 @@ class QuickVoiceApp : Application() {
 
     private fun initNotificationChannels() {
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val toneUriStr = settingsManager.notificationToneUri
+        val soundUri = if (toneUriStr != null) Uri.parse(toneUriStr) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
         val audioAttributes = AudioAttributes.Builder()
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .setUsage(AudioAttributes.USAGE_ALARM)
             .build()
 
+        val defaultChannelId = "${ReminderAlarmReceiver.CHANNEL_ID_DEFAULT}_${toneUriStr.hashCode()}"
         val defaultChannel = NotificationChannel(
-            ReminderAlarmReceiver.CHANNEL_ID_DEFAULT,
+            defaultChannelId,
             getString(R.string.reminder_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
@@ -62,8 +71,9 @@ class QuickVoiceApp : Application() {
             setSound(soundUri, audioAttributes)
         }
 
+        val nagChannelId = "${ReminderAlarmReceiver.CHANNEL_ID_NAG}_${toneUriStr.hashCode()}"
         val nagChannel = NotificationChannel(
-            ReminderAlarmReceiver.CHANNEL_ID_NAG,
+            nagChannelId,
             "Urgent Nag Reminders",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {

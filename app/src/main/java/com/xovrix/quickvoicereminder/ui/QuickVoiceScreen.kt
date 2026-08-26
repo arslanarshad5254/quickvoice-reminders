@@ -213,7 +213,8 @@ fun QuickVoiceScreen(
                     } ?: viewModel.clearCompleted()
                 },
                 isAdsFree = uiState.isAdsFree,
-                onUpgradeClick = viewModel::openUpgradeDialog
+                onUpgradeClick = viewModel::openUpgradeDialog,
+                onSettingsClick = viewModel::openSettingsDialog
             )
 
             // Task List or Empty State
@@ -291,6 +292,17 @@ fun QuickVoiceScreen(
                     }
                 },
                 onDismiss = viewModel::dismissPendingTask
+            )
+        }
+
+        // Settings Dialog
+        if (uiState.showSettingsDialog) {
+            SettingsDialog(
+                currentToneUri = uiState.currentToneUri,
+                onDismiss = viewModel::closeSettingsDialog,
+                onToneSelected = { uri ->
+                    viewModel.updateNotificationTone(uri)
+                }
             )
         }
     }

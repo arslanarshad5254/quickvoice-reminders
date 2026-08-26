@@ -6,26 +6,29 @@
 
 ## 🚀 Key Features
 
-### 1. Ultra-Fast Voice & Text Capture
+### 1. Ultra-Fast capture
 * **Hybrid AI-Local Parsing**: Uses a smart "AI-First, Heuristic-Fallback" architecture.
 * **AI Engine**: Uses Google's **Gemini 2.5 Flash** (via Firebase AI) to extract tasks, dates, times, locations, and urgency from complex, unstructured sentences like *"Remind me next Friday at noon to follow up with the guy I met at the gym"*.
-* **Resilient Offline NLP**: If the internet is down or an API key is not provided, a rule-based heuristic parser takes over in <5ms. This ensures basic reminders like *"Buy milk after 10 minutes"* or *"Call mom tomorrow at 5pm"* always work instantly without a cloud connection.
-* **Manual Confirmation**: A review popup allows you to fine-tune AI-extracted details (Date, Time, Category, Urgency) before saving.
+* **Resilient Offline NLP**: If the internet is down or an API key is not provided, a rule-based heuristic parser takes over in <5ms. This ensures basic reminders like *"Buy milk after 10 minutes"* or *"Call mom tomorrow at 5pm"* always work instantly.
+* **Manual Entry (+)**: A dedicated Floating Action Button for those who prefer traditional manual reminder creation with smart defaults.
+* **Voice-to-Text Review**: Speak your reminder, review the transcript, and edit details in an interactive popup before saving.
 
 ### 2. Smart Scheduling & Notifications
-* **Natural Time Support**: Understands phrases like "tonight", "next Friday", "in 2 hours", or "after 10 minutes".
+* **Natural Time Support**: Understands phrases like "tonight", "next Friday", "in 2 hours", "after 10 minutes", or "10 p.m.".
 * **Nag Mode ⚡**: For critical tasks, Nag Mode repeats notifications every 5 minutes until you mark the task as complete.
-* **Snooze Support**: Quick actions on notifications allow you to snooze tasks by 10 minutes or complete them instantly.
+* **Custom Notification Tones**: Personalized alert sounds selectable via the app settings.
+* **Snooze Support**: Quick actions on notifications allow you to snooze tasks by 10 minutes, which automatically updates the task's schedule in the app.
 
 ### 3. Productivity Dashboard
 * **Metric Badges**: Quick filters for Pending, Today, Urgent Nag, and Completed tasks.
-* **Categorization**: Auto-categorizes tasks into Personal, Work, Errands, Health, Finance, or General based on context.
-* **Search & Filter**: Find any reminder by text, location, or date.
+* **Search & Filter**: Find any reminder by text, location, or category instantly.
+* **Undo Delete**: Accidentally deleted a reminder? Restore it instantly with the one-tap Undo option.
+* **Clear Completed**: Easily sweep away all finished tasks to keep your dashboard clean.
 
 ### 4. Modern Android Integration
 * **Home Screen Widget**: Built with **Android Glance**, providing a glanceable view of your tasks and a one-tap shortcut to voice recording.
-* **Material 3 Design**: A beautiful, dark-themed UI following modern Material Design principles.
-* **Ad-Free Option**: Integrated Google Play Billing for a one-time "Pro" upgrade.
+* **Material 3 Design**: A beautiful, responsive dark-themed UI following modern Material Design principles.
+* **Ad-Free Option**: Integrated Google Play Billing for a "Pro" upgrade at just $5/month.
 
 ---
 
@@ -38,7 +41,7 @@
 * **AI/NLP**: Google Gemini 2.5 Flash & Custom Rule-based NLP
 * **Networking**: Retrofit & OkHttp
 * **Background Tasks**: AlarmManager for precise scheduling
-* **Ads**: Google AdMob (optimized frequency)
+* **Ads**: Google AdMob (Optimized frequency: Interstitial every 3rd schedule)
 * **Widgets**: Android Glance (Jetpack Compose for Widgets)
 
 ---
@@ -70,7 +73,7 @@ The project uses the **Secrets Gradle Plugin** to manage sensitive keys.
 ## 📈 Monetization & Ads
 * **Banner Ads**: Non-intrusive banners at the bottom of the screen.
 * **Interstitial Ads**: Shown every 3rd successful reminder schedule to balance user experience and revenue.
-* **Pro Upgrade**: Users can remove all ads via a Google Play In-App Purchase.
+* **Pro Upgrade**: Users can remove all ads and unlock premium badges via a Google Play In-App Purchase ($5/month).
 
 ---
 

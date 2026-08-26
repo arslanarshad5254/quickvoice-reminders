@@ -47,6 +47,7 @@ fun StatsHeader(
     onClearCompleted: () -> Unit,
     isAdsFree: Boolean = false,
     onUpgradeClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -132,12 +133,23 @@ fun StatsHeader(
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
-                            text = if (isAdsFree) "Pro" else "Ad-Free $1/mo",
+                            text = if (isAdsFree) "Pro" else "Ad-Free $5/mo",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (isAdsFree) EmeraldGreen else ElectricIndigo
                         )
                     }
+                }
+
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(32.dp).testTag("settings_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

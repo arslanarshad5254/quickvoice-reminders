@@ -63,7 +63,7 @@
         <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-3081589540118295~8037408665" />
 
         <!-- Disable unconfigured Firebase/Google Analytics auto-measurement warnings -->
         <meta-data

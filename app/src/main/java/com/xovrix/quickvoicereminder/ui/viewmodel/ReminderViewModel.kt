@@ -54,18 +54,23 @@ data class ReminderUiState(
     val speechState: SpeechState = SpeechState.Idle,
     val snackbarMessage: String? = null,
     val isAdsFree: Boolean = false,
-    val subPrice: String = "$1.00 / month",
-    val showUpgradeDialog: Boolean = false
+    val subPrice: String = "$5.00 / month",
+    val showUpgradeDialog: Boolean = false,
+    val showSettingsDialog: Boolean = false,
+    val currentToneUri: String? = null
 )
 
 class ReminderViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = (application as QuickVoiceApp).repository
     val billingManager = (application as QuickVoiceApp).billingManager
+    val settingsManager = (application as QuickVoiceApp).settingsManager
     private val taskParser = GeminiTaskParser()
     val speechManager = SpeechManager(application)
 
-    private val _uiState = MutableStateFlow(ReminderUiState())
+    private val _uiState = MutableStateFlow(ReminderUiState(
+        currentToneUri = settingsManager.notificationToneUri
+    ))
     val uiState: StateFlow<ReminderUiState> = _uiState.asStateFlow()
 
     private var lastDeletedTask: TaskEntity? = null
@@ -385,5 +390,21 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     fun toggleAdsFreeSimulation(enabled: Boolean) {
         billingManager.setManualAdsFree(enabled)
+    }
+
+    fun updateNotificationTone(uri: String) {
+        settingsManager.notificationToneUri = uri
+        _uiState.update { it.copy(
+            currentToneUri = uri,
+            snackbarMessage = "Notification tone updated"
+        ) }
+    }
+
+    fun openSettingsDialog() {
+        _uiState.update { it.copy(showSettingsDialog = true) }
+    }
+
+    fun closeSettingsDialog() {
+        _uiState.update { it.copy(showSettingsDialog = false) }
     }
 }

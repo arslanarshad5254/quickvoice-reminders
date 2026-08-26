@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class NotificationActionReceiver : BroadcastReceiver() {
 
@@ -44,7 +45,21 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         val taskTitle = intent.getStringExtra(ReminderAlarmScheduler.EXTRA_TASK_TITLE) ?: "Reminder"
                         if (taskId > 0) {
                             Log.d(TAG, "Snoozing task $taskId for 10 minutes")
-                            scheduler.scheduleSnooze(taskId, taskTitle, 10)
+                            
+                            // Update task time in DB
+                            val task = db.taskDao().getTaskById(taskId)
+                            if (task != null) {
+                                val newTime = LocalDateTime.now().plusMinutes(10)
+                                val updatedTask = task.copy(
+                                    dueDate = newTime.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                    dueTime = newTime.format(DateTimeFormatter.ofPattern("HH:mm")),
+                                    scheduledDateTime = newTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                                )
+                                db.taskDao().updateTask(updatedTask)
+                                scheduler.schedule(updatedTask)
+                            } else {
+                                scheduler.scheduleSnooze(taskId, taskTitle, 10)
+                            }
                         }
                     }
                 }

@@ -13,9 +13,9 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 object AdManager {
     private const val TAG = "AdManager"
 
-    // Official Google AdMob Test Ad Unit IDs
-    const val BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
-    const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
+    // Official Google AdMob Ad Unit IDs
+    const val BANNER_AD_UNIT_ID = "ca-app-pub-3081589540118295/3278132502"
+    const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3081589540118295/8997363042"
 
     private var interstitialAd: InterstitialAd? = null
     private var isLoadingInterstitial = false

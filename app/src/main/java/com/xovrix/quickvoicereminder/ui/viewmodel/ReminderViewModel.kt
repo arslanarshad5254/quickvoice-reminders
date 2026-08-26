@@ -388,10 +388,6 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(snackbarMessage = "Checking active subscriptions...") }
     }
 
-    fun toggleAdsFreeSimulation(enabled: Boolean) {
-        billingManager.setManualAdsFree(enabled)
-    }
-
     fun updateNotificationTone(uri: String) {
         settingsManager.notificationToneUri = uri
         _uiState.update { it.copy(

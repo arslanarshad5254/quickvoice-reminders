@@ -35,7 +35,6 @@ fun UpgradeAdFreeDialog(
     onDismiss: () -> Unit,
     onSubscribe: () -> Unit,
     onRestorePurchases: () -> Unit,
-    onToggleTestStatus: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Dialog(
@@ -242,7 +241,7 @@ fun UpgradeAdFreeDialog(
                 // Secondary Actions: Restore & Terms
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
@@ -253,18 +252,6 @@ fun UpgradeAdFreeDialog(
                             text = "Restore Purchases",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    // Development Sandbox toggle
-                    TextButton(
-                        onClick = { onToggleTestStatus(!isAdsFree) },
-                        modifier = Modifier.testTag("test_toggle_ads_free")
-                    ) {
-                        Text(
-                            text = if (isAdsFree) "Test: Enable Ads" else "Test: Enable Ad-Free",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }

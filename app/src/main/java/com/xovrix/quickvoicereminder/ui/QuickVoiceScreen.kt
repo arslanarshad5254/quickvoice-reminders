@@ -177,7 +177,7 @@ fun QuickVoiceScreen(
                 contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier
-                    .padding(bottom = if (uiState.isAdsFree) 80.dp else 130.dp)
+                    .padding(bottom = 24.dp)
                     .testTag("add_custom_reminder_fab")
             ) {
                 Icon(
@@ -259,8 +259,7 @@ fun QuickVoiceScreen(
                         viewModel.launchUpgradePurchase(act)
                     }
                 },
-                onRestorePurchases = viewModel::restorePurchases,
-                onToggleTestStatus = viewModel::toggleAdsFreeSimulation
+                onRestorePurchases = viewModel::restorePurchases
             )
         }
 

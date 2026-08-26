@@ -209,12 +209,6 @@ class BillingManager(
         }
     }
 
-    // Direct toggle / simulation for testing environments without Play Store account
-    fun setManualAdsFree(enabled: Boolean) {
-        updateAdsFreeStatus(enabled)
-        _purchaseStatusMessage.value = if (enabled) "Ads-Free plan activated!" else "Free plan active."
-    }
-
     private fun updateAdsFreeStatus(active: Boolean) {
         _isAdsFree.value = active
         prefs.edit().putBoolean(KEY_IS_ADS_FREE, active).apply()

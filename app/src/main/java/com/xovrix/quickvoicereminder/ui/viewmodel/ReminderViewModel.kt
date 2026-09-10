@@ -57,7 +57,12 @@ data class ReminderUiState(
     val subPrice: String = "$5.00 / month",
     val showUpgradeDialog: Boolean = false,
     val showSettingsDialog: Boolean = false,
-    val currentToneUri: String? = null
+    val currentToneUri: String? = null,
+    val selectedTaskIds: Set<Long> = emptySet(),
+    val isSelectionMode: Boolean = false,
+    val taskToDelete: TaskEntity? = null,
+    val isDeletingAll: Boolean = false,
+    val isDeletingSelected: Boolean = false
 )
 
 class ReminderViewModel(application: Application) : AndroidViewModel(application) {
@@ -303,7 +308,87 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             lastDeletedTask = task
             repository.deleteTask(task)
-            _uiState.update { it.copy(snackbarMessage = "Reminder deleted") }
+            _uiState.update { it.copy(
+                snackbarMessage = "Reminder deleted",
+                taskToDelete = null
+            ) }
+        }
+    }
+
+    fun requestDeleteTask(task: TaskEntity) {
+        _uiState.update { it.copy(taskToDelete = task) }
+    }
+
+    fun cancelDeleteTask() {
+        _uiState.update { it.copy(taskToDelete = null, isDeletingAll = false, isDeletingSelected = false) }
+    }
+
+    fun requestDeleteSelected() {
+        _uiState.update { it.copy(isDeletingSelected = true) }
+    }
+
+    fun requestDeleteAll() {
+        _uiState.update { it.copy(isDeletingAll = true) }
+    }
+
+    fun deleteAllDisplayedTasks() {
+        viewModelScope.launch {
+            val tasksToDelete = _uiState.value.displayedTasks
+            tasksToDelete.forEach { repository.deleteTask(it) }
+            _uiState.update { it.copy(
+                snackbarMessage = "${tasksToDelete.size} reminders deleted",
+                isDeletingAll = false,
+                isSelectionMode = false,
+                selectedTaskIds = emptySet()
+            ) }
+        }
+    }
+
+    fun toggleSelectionMode() {
+        _uiState.update { 
+            val newMode = !it.isSelectionMode
+            it.copy(
+                isSelectionMode = newMode,
+                selectedTaskIds = if (!newMode) emptySet() else it.selectedTaskIds
+            )
+        }
+    }
+
+    fun toggleTaskSelection(taskId: Long) {
+        _uiState.update { state ->
+            val current = state.selectedTaskIds
+            val updated = if (current.contains(taskId)) {
+                current - taskId
+            } else {
+                current + taskId
+            }
+            state.copy(
+                selectedTaskIds = updated,
+                isSelectionMode = updated.isNotEmpty() || state.isSelectionMode
+            )
+        }
+    }
+
+    fun selectAllDisplayedTasks() {
+        _uiState.update { state ->
+            val allIds = state.displayedTasks.map { it.id }.toSet()
+            state.copy(selectedTaskIds = allIds)
+        }
+    }
+
+    fun deleteSelectedTasks() {
+        viewModelScope.launch {
+            val ids = _uiState.value.selectedTaskIds
+            val tasksToDelete = _uiState.value.activeTasks.filter { ids.contains(it.id) } + 
+                               _uiState.value.completedTasks.filter { ids.contains(it.id) }
+            
+            tasksToDelete.forEach { repository.deleteTask(it) }
+            
+            _uiState.update { it.copy(
+                selectedTaskIds = emptySet(),
+                isSelectionMode = false,
+                snackbarMessage = "${tasksToDelete.size} reminders deleted"
+            ) }
         }
     }
 

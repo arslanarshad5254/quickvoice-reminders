@@ -48,6 +48,7 @@ fun StatsHeader(
     isAdsFree: Boolean = false,
     onUpgradeClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
+    onBulkSelectClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -110,6 +111,17 @@ fun StatsHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Multi-select toggle
+                IconButton(
+                    onClick = onBulkSelectClick,
+                    modifier = Modifier.size(32.dp).testTag("bulk_select_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LibraryAddCheck,
+                        contentDescription = "Select Reminders",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 Surface(
                     onClick = onUpgradeClick,
@@ -263,6 +275,18 @@ fun StatsHeader(
                         color = CoralRed,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
+                    )
+                }
+            } else if (stats.activeCount > 0 || stats.completedCount > 0) {
+                // Delete All Option for non-completed view (if any tasks shown)
+                IconButton(
+                    onClick = onClearCompleted,
+                    modifier = Modifier.testTag("delete_all_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DeleteSweep,
+                        contentDescription = "Delete All",
+                        tint = CoralRed.copy(alpha = 0.7f)
                     )
                 }
             }

@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.android.billingclient.api.*
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,7 +22,6 @@ class BillingManager(
         const val SUB_MONTHLY_AD_FREE = "quickvoice_ad_free_monthly"
         private const val PREFS_NAME = "quickvoice_billing_prefs"
         private const val KEY_IS_ADS_FREE = "key_is_ads_free"
-        private const val KEY_EXPIRY_DATE = "key_expiry_date"
     }
 
     private val prefs: SharedPreferences =
@@ -52,6 +50,7 @@ class BillingManager(
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
         .enablePendingPurchases(pendingPurchasesParams)
+        .enableAutoServiceReconnection()
         .build()
 
     init {
@@ -97,8 +96,9 @@ class BillingManager(
             .setProductList(productList)
             .build()
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsList ->
+        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val queryProductDetailsList = queryProductDetailsResult.productDetailsList
                 val details = queryProductDetailsList.firstOrNull { it.productId == SUB_MONTHLY_AD_FREE }
                 _productDetails.value = details
 

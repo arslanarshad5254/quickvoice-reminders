@@ -194,28 +194,32 @@ fun QuickVoiceScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Stats Header, Filter Chips & Search
-            StatsHeader(
-                stats = uiState.stats,
-                selectedFilter = uiState.filter,
-                onFilterSelected = viewModel::setFilter,
-                selectedCategory = uiState.selectedCategory,
-                onCategorySelected = viewModel::selectCategory,
-                selectedDate = uiState.selectedDate,
-                onDateSelected = viewModel::setDateFilter,
-                searchQuery = uiState.searchQuery,
-                onSearchChanged = viewModel::onSearchQueryChanged,
-                onClearCompleted = {
-                    context.findActivity()?.let { act ->
-                        AdManager.showInterstitial(act, isAdsFree = uiState.isAdsFree) {
-                            viewModel.clearCompleted()
-                        }
-                    } ?: viewModel.clearCompleted()
-                },
-                isAdsFree = uiState.isAdsFree,
-                onUpgradeClick = viewModel::openUpgradeDialog,
-                onSettingsClick = viewModel::openSettingsDialog
-            )
+            // Selection Mode Header or Stats Header
+            if (uiState.isSelectionMode) {
+                SelectionHeader(
+                    selectedCount = uiState.selectedTaskIds.size,
+                    onDeleteSelected = viewModel::requestDeleteSelected, // Changed to request
+                    onSelectAll = viewModel::selectAllDisplayedTasks,
+                    onCancel = viewModel::toggleSelectionMode
+                )
+            } else {
+                StatsHeader(
+                    stats = uiState.stats,
+                    selectedFilter = uiState.filter,
+                    onFilterSelected = viewModel::setFilter,
+                    selectedCategory = uiState.selectedCategory,
+                    onCategorySelected = viewModel::selectCategory,
+                    selectedDate = uiState.selectedDate,
+                    onDateSelected = viewModel::setDateFilter,
+                    searchQuery = uiState.searchQuery,
+                    onSearchChanged = viewModel::onSearchQueryChanged,
+                    onClearCompleted = viewModel::requestDeleteAll, // Changed to request delete all
+                    isAdsFree = uiState.isAdsFree,
+                    onUpgradeClick = viewModel::openUpgradeDialog,
+                    onSettingsClick = viewModel::openSettingsDialog,
+                    onBulkSelectClick = viewModel::toggleSelectionMode
+                )
+            }
 
             // Task List or Empty State
             if (uiState.displayedTasks.isEmpty()) {
@@ -241,7 +245,10 @@ fun QuickVoiceScreen(
                             task = task,
                             onToggleComplete = { viewModel.toggleTaskCompletion(task) },
                             onEdit = { viewModel.openEditTask(task) },
-                            onDelete = { viewModel.deleteTask(task) }
+                            onDelete = { viewModel.requestDeleteTask(task) }, // Changed to request confirmation
+                            isSelectionMode = uiState.isSelectionMode,
+                            isSelected = uiState.selectedTaskIds.contains(task.id),
+                            onToggleSelection = { viewModel.toggleTaskSelection(task.id) }
                         )
                     }
                 }
@@ -303,6 +310,80 @@ fun QuickVoiceScreen(
                     viewModel.updateNotificationTone(uri)
                 }
             )
+        }
+
+        // Delete Individual Confirmation
+        uiState.taskToDelete?.let { task ->
+            DeleteConfirmationDialog(
+                onConfirm = { viewModel.deleteTask(task) },
+                onDismiss = viewModel::cancelDeleteTask
+            )
+        }
+
+        // Delete All Confirmation
+        if (uiState.isDeletingAll) {
+            DeleteConfirmationDialog(
+                title = "Clear All Reminders?",
+                message = "Are you sure you want to delete all ${uiState.displayedTasks.size} displayed reminders? This action cannot be easily undone.",
+                onConfirm = viewModel::deleteAllDisplayedTasks,
+                onDismiss = viewModel::cancelDeleteTask
+            )
+        }
+
+        // Delete Selected Confirmation
+        if (uiState.isDeletingSelected) {
+            DeleteConfirmationDialog(
+                title = "Delete Selected?",
+                message = "Are you sure you want to delete ${uiState.selectedTaskIds.size} selected reminders?",
+                onConfirm = viewModel::deleteSelectedTasks,
+                onDismiss = viewModel::cancelDeleteTask
+            )
+        }
+    }
+}
+
+@Composable
+fun SelectionHeader(
+    selectedCount: Int,
+    onDeleteSelected: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = ElectricIndigo,
+        contentColor = Color.White,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .statusBarsPadding(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onCancel) {
+                    Icon(Icons.Default.Close, contentDescription = "Cancel selection")
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "$selectedCount Selected",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Row {
+                TextButton(onClick = onSelectAll, colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
+                    Text("Select All")
+                }
+                if (selectedCount > 0) {
+                    IconButton(onClick = onDeleteSelected) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete selected")
+                    }
+                }
+            }
         }
     }
 }
@@ -389,6 +470,9 @@ fun SwipeableTaskItem(
     onToggleComplete: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -469,7 +553,10 @@ fun SwipeableTaskItem(
                 task = task,
                 onToggleComplete = onToggleComplete,
                 onEdit = onEdit,
-                onDelete = onDelete
+                onDelete = onDelete,
+                isSelectionMode = isSelectionMode,
+                isSelected = isSelected,
+                onToggleSelection = onToggleSelection
             )
         }
     )

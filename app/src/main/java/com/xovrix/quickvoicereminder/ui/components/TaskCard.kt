@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,12 +29,16 @@ import androidx.compose.ui.unit.sp
 import com.xovrix.quickvoicereminder.data.TaskEntity
 import com.xovrix.quickvoicereminder.ui.theme.*
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TaskCard(
     task: TaskEntity,
     onToggleComplete: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val categoryColor = CategoryUtils.getCategoryColor(task.category)
@@ -42,10 +47,10 @@ fun TaskCard(
     val (countdownText, isOverdue) = CategoryUtils.getRelativeTimeCountdown(task.dueDate, task.dueTime)
 
     val cardBgColor by animateColorAsState(
-        targetValue = if (task.isCompleted) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            MaterialTheme.colorScheme.surface
+        targetValue = when {
+            isSelected -> ElectricIndigo.copy(alpha = 0.15f)
+            task.isCompleted -> MaterialTheme.colorScheme.surfaceVariant
+            else -> MaterialTheme.colorScheme.surface
         },
         animationSpec = tween(300),
         label = "cardBgColor"
@@ -55,18 +60,20 @@ fun TaskCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("task_item_card_${task.id}")
-            .clickable { onEdit() },
+            .combinedClickable(
+                onClick = { if (isSelectionMode) onToggleSelection() else onEdit() },
+                onLongClick = { if (!isSelectionMode) onToggleSelection() }
+            ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = cardBgColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (task.isCompleted) 0.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (task.isCompleted || isSelected) 0.dp else 2.dp),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
-            if (task.isNag && !task.isCompleted) {
-                AmberFlame.copy(alpha = 0.65f)
-            } else if (!task.isCompleted) {
-                categoryColor.copy(alpha = 0.35f)
-            } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            when {
+                isSelected -> ElectricIndigo
+                task.isNag && !task.isCompleted -> AmberFlame.copy(alpha = 0.65f)
+                !task.isCompleted -> categoryColor.copy(alpha = 0.35f)
+                else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
             }
         )
     ) {
@@ -81,8 +88,11 @@ fun TaskCard(
                     .fillMaxHeight()
                     .width(5.dp)
                     .background(
-                        if (task.isCompleted) categoryColor.copy(alpha = 0.4f)
-                        else categoryColor
+                        when {
+                            isSelected -> ElectricIndigo
+                            task.isCompleted -> categoryColor.copy(alpha = 0.4f)
+                            else -> categoryColor
+                        }
                     )
                     .testTag("category_indicator_stripe_${task.id}")
             )
@@ -182,33 +192,42 @@ fun TaskCard(
                         }
                     }
 
-                    // Edit button
-                    IconButton(
-                        onClick = onEdit,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .testTag("task_edit_button_${task.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = "Edit reminder details",
-                            tint = ElectricIndigo.copy(alpha = 0.85f),
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
+                    if (!isSelectionMode) {
+                        // Edit button
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("task_edit_button_${task.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = "Edit reminder details",
+                                tint = ElectricIndigo.copy(alpha = 0.85f),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
 
-                    // Delete button
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .testTag("task_delete_button_${task.id}")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = "Delete task",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            modifier = Modifier.size(18.dp)
+                        // Delete button
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("task_delete_button_${task.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteOutline,
+                                contentDescription = "Delete task",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    } else {
+                        // Selection Checkbox (Right Side)
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = { onToggleSelection() },
+                            colors = CheckboxDefaults.colors(checkedColor = ElectricIndigo)
                         )
                     }
                 }
@@ -225,7 +244,10 @@ fun TaskCard(
                     modifier = Modifier
                         .size(48.dp)
                         .testTag("task_checkbox_${task.id}")
-                        .clickable { onToggleComplete() },
+                        .combinedClickable(
+                            onClick = { if (isSelectionMode) onToggleSelection() else onToggleComplete() },
+                            onLongClick = { if (!isSelectionMode) onToggleSelection() }
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -320,5 +342,4 @@ fun TaskCard(
             }
         }
     }
-}
 }

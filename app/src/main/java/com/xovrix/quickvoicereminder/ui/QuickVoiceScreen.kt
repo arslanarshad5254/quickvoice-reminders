@@ -248,6 +248,7 @@ fun QuickVoiceScreen(
                             onDelete = { viewModel.requestDeleteTask(task) }, // Changed to request confirmation
                             isSelectionMode = uiState.isSelectionMode,
                             isSelected = uiState.selectedTaskIds.contains(task.id),
+                            isBeingDeleted = uiState.taskToDelete?.id == task.id,
                             onToggleSelection = { viewModel.toggleTaskSelection(task.id) }
                         )
                     }
@@ -472,6 +473,7 @@ fun SwipeableTaskItem(
     onDelete: () -> Unit,
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
+    isBeingDeleted: Boolean = false,
     onToggleSelection: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -485,6 +487,12 @@ fun SwipeableTaskItem(
             }
         }
     )
+
+    LaunchedEffect(isBeingDeleted) {
+        if (!isBeingDeleted && (dismissState.currentValue != SwipeToDismissBoxValue.Settled || dismissState.targetValue != SwipeToDismissBoxValue.Settled)) {
+            dismissState.reset()
+        }
+    }
 
     SwipeToDismissBox(
         state = dismissState,

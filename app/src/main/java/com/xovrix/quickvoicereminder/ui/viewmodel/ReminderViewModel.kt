@@ -78,7 +78,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     ))
     val uiState: StateFlow<ReminderUiState> = _uiState.asStateFlow()
 
-    private var lastDeletedTask: TaskEntity? = null
+    private var lastDeletedTasks = emptyList<TaskEntity>()
 
     init {
         // Collect billing state
@@ -306,7 +306,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     fun deleteTask(task: TaskEntity) {
         viewModelScope.launch {
-            lastDeletedTask = task
+            lastDeletedTasks = listOf(task)
             repository.deleteTask(task)
             _uiState.update { it.copy(
                 snackbarMessage = "Reminder deleted",
@@ -334,6 +334,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     fun deleteAllDisplayedTasks() {
         viewModelScope.launch {
             val tasksToDelete = _uiState.value.displayedTasks
+            lastDeletedTasks = tasksToDelete
             tasksToDelete.forEach { repository.deleteTask(it) }
             _uiState.update { it.copy(
                 snackbarMessage = "${tasksToDelete.size} reminders deleted",
@@ -382,6 +383,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             val tasksToDelete = _uiState.value.activeTasks.filter { ids.contains(it.id) } + 
                                _uiState.value.completedTasks.filter { ids.contains(it.id) }
             
+            lastDeletedTasks = tasksToDelete
             tasksToDelete.forEach { repository.deleteTask(it) }
             
             _uiState.update { it.copy(
@@ -393,15 +395,15 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun undoDelete() {
-        val taskToRestore = lastDeletedTask ?: return
+        val tasksToRestore = lastDeletedTasks
+        if (tasksToRestore.isEmpty()) return
+        
         viewModelScope.launch {
-            // Re-insert the task. Since it's a new insert, it will get a new ID if we pass id=0, 
-            // but if we pass the original ID it might conflict if not cleared. 
-            // Better to just insert it as a new entity or use original if possible.
-            // repository.insertTask will handle scheduling.
-            repository.insertTask(taskToRestore.copy(id = 0)) 
-            lastDeletedTask = null
-            _uiState.update { it.copy(snackbarMessage = "Reminder restored") }
+            tasksToRestore.forEach { task ->
+                repository.insertTask(task.copy(id = 0))
+            }
+            lastDeletedTasks = emptyList()
+            _uiState.update { it.copy(snackbarMessage = if (tasksToRestore.size == 1) "Reminder restored" else "${tasksToRestore.size} reminders restored") }
         }
     }
 

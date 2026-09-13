@@ -111,18 +111,6 @@ fun StatsHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Multi-select toggle
-                IconButton(
-                    onClick = onBulkSelectClick,
-                    modifier = Modifier.size(32.dp).testTag("bulk_select_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LibraryAddCheck,
-                        contentDescription = "Select Reminders",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
                 Surface(
                     onClick = onUpgradeClick,
                     shape = RoundedCornerShape(12.dp),
@@ -257,24 +245,33 @@ fun StatsHeader(
                 )
             )
 
+            // Bulk Select Toggle (moved next to delete icons)
+            IconButton(
+                onClick = onBulkSelectClick,
+                modifier = Modifier
+                    .size(42.dp)
+                    .testTag("bulk_select_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LibraryAddCheck,
+                    contentDescription = "Select Reminders",
+                    tint = if (selectedFilter == TaskFilter.COMPLETED) EmeraldGreen.copy(alpha = 0.8f) else ElectricIndigo.copy(
+                        alpha = 0.8f
+                    ),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
             if (selectedFilter == TaskFilter.COMPLETED && stats.completedCount > 0) {
-                TextButton(
+                IconButton(
                     onClick = onClearCompleted,
-                    modifier = Modifier.testTag("clear_completed_button"),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                    modifier = Modifier.testTag("clear_completed_button")
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.DeleteSweep,
                         contentDescription = "Clear Completed",
                         tint = CoralRed,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        "Clear Done",
-                        color = CoralRed,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             } else if (stats.activeCount > 0 || stats.completedCount > 0) {

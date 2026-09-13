@@ -32,6 +32,20 @@ fun SettingsDialog(
     onToneSelected: (String) -> Unit
 ) {
     val context = LocalContext.current
+    
+    val currentToneName = remember(currentToneUri) {
+        try {
+            if (currentToneUri != null) {
+                val ringtone = RingtoneManager.getRingtone(context, Uri.parse(currentToneUri))
+                ringtone.getTitle(context)
+            } else {
+                "Default"
+            }
+        } catch (_: Exception) {
+            "Default"
+        }
+    }
+
     val ringtoneLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -71,13 +85,14 @@ fun SettingsDialog(
                     }
                 }
 
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 // Tone Picker Row
                 Surface(
                     onClick = {
                         val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                            // Show all ringtones, notifications, and alarms
+                            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALL)
                             putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Select Reminder Tone")
                             putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, currentToneUri?.let { Uri.parse(it) })
                             putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
@@ -113,6 +128,13 @@ fun SettingsDialog(
                                 text = "Choose sound for reminder alerts",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Current: $currentToneName",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ElectricIndigo,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)

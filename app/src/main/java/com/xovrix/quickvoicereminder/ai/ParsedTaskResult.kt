@@ -5,13 +5,20 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class ParsedTaskResult(
-    @Json(name = "task") val task: String,
-    @Json(name = "due_date") val dueDate: String? = null,      // YYYY-MM-DD
-    @Json(name = "due_time") val dueTime: String? = null,      // HH:mm
-    @Json(name = "category") val category: String = "General", // Personal, Work, Errands, Health, Finance, General
-    @Json(name = "location") val location: String? = null,
+    val task: String,
+    @Json(name = "due_date") val dueDate: String? = null,
+    @Json(name = "due_time") val dueTime: String? = null,
+    @Json(name = "end_date") val endDate: String? = null,
+    @Json(name = "end_time") val endTime: String? = null,
+    @Json(name = "is_all_day") val isAllDay: Boolean = false,
+    val category: String = "General",
+    val location: String? = null,
     @Json(name = "is_nag") val isNag: Boolean = false,
-    val isAiParsed: Boolean = true
+    @Json(name = "is_recurring") val isRecurring: Boolean = false,
+    val recurrence: String? = null,
+    @Json(name = "recurrence_days") val recurrenceDays: List<String>? = null,
+    @Json(name = "recurrence_interval_days") val recurrenceIntervalDays: Int? = null,
+    val isAiParsed: Boolean = false
 ) {
     val scheduledDateTime: String?
         get() {

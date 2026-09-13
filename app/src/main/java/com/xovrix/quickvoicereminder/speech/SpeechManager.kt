@@ -124,6 +124,14 @@ class SpeechManager(private val context: Context) {
             speechRecognizer?.stopListening()
             speechRecognizer?.destroy()
             speechRecognizer = null
+            
+            // Immediately transition out of listening state to avoid getting stuck
+            val current = _speechState.value
+            if (current is SpeechState.Listening && current.partialText.isNotBlank()) {
+                _speechState.value = SpeechState.Result(current.partialText)
+            } else if (_speechState.value is SpeechState.Listening) {
+                _speechState.value = SpeechState.Idle
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping SpeechRecognizer: ${e.message}")
         }

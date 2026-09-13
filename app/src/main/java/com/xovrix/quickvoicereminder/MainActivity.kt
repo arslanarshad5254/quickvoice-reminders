@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import com.xovrix.quickvoicereminder.ui.QuickVoiceScreen
 import com.xovrix.quickvoicereminder.ui.theme.MyApplicationTheme
 import com.xovrix.quickvoicereminder.ui.viewmodel.ReminderViewModel
+import com.xovrix.quickvoicereminder.update.UpdateManager
 
 class MainActivity : ComponentActivity() {
 
@@ -23,9 +24,12 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: ReminderViewModel by viewModels()
     private var triggerVoiceOnStart by mutableStateOf(false)
+    private lateinit var updateManager: UpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        updateManager = UpdateManager(this)
+        updateManager.checkForUpdates()
         checkVoiceIntent(intent)
         enableEdgeToEdge()
         setContent {
@@ -45,6 +49,16 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         checkVoiceIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateManager.onResume()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        updateManager.onDestroy()
     }
 
     private fun checkVoiceIntent(intent: Intent?) {

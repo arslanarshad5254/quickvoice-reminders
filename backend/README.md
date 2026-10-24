@@ -1,6 +1,6 @@
 # QuickVoice AI backend - cPanel deployment
 
-Node.js API for secure AI reminder parsing. PostgreSQL stores installation and request metadata for rate limiting and operations; reminder text is not stored.
+Node.js API for secure AI reminder parsing. PostgreSQL stores installation metadata, AI prompts, structured responses, and request metrics. Safe repeated prompts are served from a per-installation cache before contacting the AI service.
 
 ## Requirements
 
@@ -72,7 +72,7 @@ cd /home/CPANEL_USER/quickvoice-backend
 npm run migrate
 ```
 
-Run the migration command after every deployment that adds a migration. Migration `002_remove_billing.sql` removes billing data created by an older backend version.
+Run the migration command after every deployment that adds a migration. Migration `002_remove_billing.sql` removes billing data created by an older backend version, and `003_ai_prompt_cache.sql` creates the prompt/response history and cache.
 
 ## 6. Start and verify
 
@@ -85,6 +85,8 @@ https://api.example.com/health/ready
 
 Both should return `{"status":"ok"}`. A `502` from `health/ready` means the PostgreSQL connection values or privileges are incorrect.
 
+Opening the application URL itself returns a small JSON service status response. If you change cPanel environment variables, click **Save** and then **Restart** so Passenger launches a new process with those values.
+
 Set the Android root `.env` to the final HTTPS URL and rebuild the app:
 
 ```env
@@ -95,6 +97,7 @@ BACKEND_BASE_URL=https://api.example.com
 
 - `GET /health/live`
 - `GET /health/ready`
+- `GET /`
 - `POST /v1/ai/parse`
 
 The POST endpoint requires the installation UUID supplied by the Android app in `X-Client-ID`.

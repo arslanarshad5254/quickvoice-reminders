@@ -68,16 +68,16 @@ async function parseReminder(payload) {
   }
 }
 
-async function recordAiRequest(clientId, inputLength, startedAt, errorCode = null) {
+async function recordAiRequest(clientId, inputLength, startedAt, errorCode = null, cacheHit = false) {
   try {
     await pool.query(
-      `INSERT INTO ai_requests(client_id, input_length, succeeded, latency_ms, error_code)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [clientId, inputLength, errorCode === null, Date.now() - startedAt, errorCode]
+      `INSERT INTO ai_requests(client_id, input_length, succeeded, latency_ms, error_code, cache_hit)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [clientId, inputLength, errorCode === null, Date.now() - startedAt, errorCode, cacheHit]
     );
   } catch (error) {
     console.error("Unable to record AI request metadata", error);
   }
 }
 
-module.exports = { parseRequestSchema, parseReminder, recordAiRequest };
+module.exports = { parseRequestSchema, parsedReminderSchema, parseReminder, recordAiRequest };

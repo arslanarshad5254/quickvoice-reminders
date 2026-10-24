@@ -416,7 +416,7 @@
             <p>When You access the Service by or through a mobile device, We may collect certain information automatically, including, but not limited to, the type of mobile device You use, Your mobile device unique ID, the IP address of Your mobile device, Your mobile operating system, the type of mobile Internet browser You use, unique device identifiers and other diagnostic data.</p>
 
             <h4>Audio and Voice Information</h4>
-            <p>The Application requires access to Your device's microphone to provide its core functionality (voice-to-text reminders). Audio is processed in real-time. Reminder transcripts may be sent through Our backend to an AI processing service for high-accuracy parsing. <span class="highlight">We do not store raw audio files or reminder transcripts on Our servers.</span></p>
+            <p>The Application requires access to Your device's microphone to provide its core functionality (voice-to-text reminders). Audio is processed in real-time. Reminder transcripts may be sent through Our backend to an AI processing service for high-accuracy parsing. <span class="highlight">We do not store raw audio files. We may store reminder transcripts and their structured AI responses for up to 90 days to improve response speed and reliability.</span></p>
 
             <h4>Information Stored Locally</h4>
             <p>The Application stores Your reminders, tasks, categories, and settings <span class="highlight">locally in the Application's private storage</span> using a Room database. Device-level encryption and access controls are provided by Android when enabled on Your device. We do not operate a reminder-storage server. Your device OS may include this data in cloud backup or device transfer according to Your Android backup settings.</p>
@@ -447,7 +447,7 @@
             <ul>
                 <li><strong>Google AdMob:</strong> Used to display advertisements. AdMob may collect data such as advertising IDs (GAID) and device information for personalized or non-personalized ads.</li>
                 <li><strong>Google Play Billing:</strong> Used for in-app purchases (Pro Upgrade). Payment processing and purchase status are handled by Google Play. Our backend does not receive billing data, and We do not store Your credit card information.</li>
-                <li><strong>AI processing service:</strong> Used to convert natural language into structured reminders. Our backend sends only the reminder text needed for this operation.</li>
+                <li><strong>AI processing service:</strong> Used to convert natural language into structured reminders. Our backend checks a private, per-installation response cache first and sends the reminder text to the AI service only when a reusable response is unavailable.</li>
             </ul>
         </div>
 

@@ -1,4 +1,11 @@
-require("dotenv").config({ quiet: true });
+const path = require("node:path");
+
+// Passenger/cPanel may start Node with a working directory outside the
+// application root. Resolve the file from this module instead of process.cwd().
+require("dotenv").config({
+  path: path.resolve(__dirname, "..", ".env"),
+  quiet: true
+});
 const { z } = require("zod");
 
 const booleanValue = z.string().default("false").transform((value) => value === "true");
@@ -15,6 +22,21 @@ const schema = z.object({
   AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(20)
 });
 
-const config = schema.parse(process.env);
+const parsed = schema.safeParse(process.env);
+if (!parsed.success) {
+  const missing = parsed.error.issues
+    .filter((issue) => issue.code === "invalid_type" && issue.input === undefined)
+    .map((issue) => issue.path.join("."));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}. ` +
+      "Set them in cPanel's Node.js Environment variables and restart the application."
+    );
+  }
+  throw parsed.error;
+}
+
+const config = parsed.data;
 
 module.exports = { config };

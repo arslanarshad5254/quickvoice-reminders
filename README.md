@@ -60,7 +60,7 @@ Provider credentials belong only in `backend/.env`; they are never included in t
 2. Create a file named `.env` in the root directory of the project.
 3. Add the public backend URL:
    ```env
-   BACKEND_BASE_URL=https://api.example.com
+   BACKEND_BASE_URL=https://quickvoicereminder.xovrix.org/backend
    ```
 
 ### Building the Project

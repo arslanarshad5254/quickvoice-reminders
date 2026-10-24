@@ -72,5 +72,9 @@ class TaskRepository(
     suspend fun getTaskById(id: Long): TaskEntity? = withContext(Dispatchers.IO) {
         taskDao.getTaskById(id)
     }
+
+    suspend fun rescheduleAll() = withContext(Dispatchers.IO) {
+        taskDao.getAllScheduledPendingTasks().forEach { scheduler.schedule(it) }
+    }
 }
 

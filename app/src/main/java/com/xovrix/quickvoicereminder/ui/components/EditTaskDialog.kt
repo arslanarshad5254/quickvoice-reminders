@@ -41,8 +41,8 @@ fun EditTaskDialog(
     onSave: (TaskEntity) -> Unit
 ) {
     var taskTitle by remember { mutableStateOf(task.task) }
-    var dueDate by remember { mutableStateOf(task.dueDate ?: LocalDate.now().toString()) }
-    var dueTime by remember { mutableStateOf(task.dueTime ?: "09:00") }
+    var dueDate by remember { mutableStateOf(task.dueDate.orEmpty()) }
+    var dueTime by remember { mutableStateOf(task.dueTime.orEmpty()) }
     var category by remember { mutableStateOf(task.category) }
     var location by remember { mutableStateOf(task.location ?: "") }
     var isNag by remember { mutableStateOf(task.isNag) }
@@ -222,7 +222,7 @@ fun EditTaskDialog(
                     }
                 }
 
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 // Task Name Field
                 OutlinedTextField(
@@ -307,7 +307,7 @@ fun EditTaskDialog(
                     }
 
                     OutlinedTextField(
-                        value = dueDate,
+                        value = dueDate.ifBlank { "No schedule" },
                         onValueChange = { dueDate = it },
                         label = { Text("Date (YYYY-MM-DD)") },
                         readOnly = true,
@@ -331,6 +331,12 @@ fun EditTaskDialog(
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true
                     )
+                    if (dueDate.isNotBlank()) {
+                        TextButton(onClick = {
+                            dueDate = ""
+                            dueTime = ""
+                        }) { Text("Remove schedule") }
+                    }
                 }
 
                 // Time Section
@@ -384,7 +390,7 @@ fun EditTaskDialog(
                     }
 
                     OutlinedTextField(
-                        value = CategoryUtils.format12HourTime(dueTime),
+                        value = if (dueTime.isBlank()) "No time" else CategoryUtils.format12HourTime(dueTime),
                         onValueChange = { },
                         label = { Text("Due Time") },
                         readOnly = true,

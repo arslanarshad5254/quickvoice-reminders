@@ -1,0 +1,23 @@
+{
+  "name": "quickvoice-backend",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch app.js",
+    "start": "node app.js",
+    "migrate": "node src/migrate.js",
+    "test": "node --test",
+    "check": "node --check app.js && node --check src/app.js && node --check src/ai.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.0.0",
+    "express": "^5.0.0",
+    "express-rate-limit": "^8.0.0",
+    "helmet": "^8.0.0",
+    "pg": "^8.0.0",
+    "zod": "^4.0.0"
+  }
+}

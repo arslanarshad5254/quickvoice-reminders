@@ -3,19 +3,25 @@ package com.xovrix.quickvoicereminder.ads
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.xovrix.quickvoicereminder.BuildConfig
 
 object AdManager {
     private const val TAG = "AdManager"
+    var canRequestAds by mutableStateOf(false)
+        private set
 
     // Official Google AdMob Ad Unit IDs
-    const val BANNER_AD_UNIT_ID = "ca-app-pub-3081589540118295/3278132502"
-    const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3081589540118295/8997363042"
+    val BANNER_AD_UNIT_ID = if (BuildConfig.DEBUG) "ca-app-pub-3940256099942544/6300978111" else "ca-app-pub-3081589540118295/3278132502"
+    val INTERSTITIAL_AD_UNIT_ID = if (BuildConfig.DEBUG) "ca-app-pub-3940256099942544/1033173712" else "ca-app-pub-3081589540118295/8997363042"
 
     private var interstitialAd: InterstitialAd? = null
     private var isLoadingInterstitial = false
@@ -24,6 +30,7 @@ object AdManager {
     private const val INTERSTITIAL_COOLDOWN_MS = 15_000L // Reduced cooldown for better flow
 
     fun loadInterstitial(context: Context) {
+        if (!canRequestAds) return
         if (interstitialAd != null || isLoadingInterstitial) return
 
         try {
@@ -52,6 +59,11 @@ object AdManager {
             isLoadingInterstitial = false
             Log.w(TAG, "Failed to initiate interstitial load", e)
         }
+    }
+
+    fun setConsentStatus(allowed: Boolean) {
+        canRequestAds = allowed
+        if (!allowed) interstitialAd = null
     }
 
     fun showInterstitial(

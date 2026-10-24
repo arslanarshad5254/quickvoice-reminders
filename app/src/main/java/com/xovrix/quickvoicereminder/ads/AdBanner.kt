@@ -25,7 +25,7 @@ fun AdBanner(
     isAdsFree: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    if (isAdsFree) return
+    if (isAdsFree || !AdManager.canRequestAds) return
 
     val context = LocalContext.current
     var isAdLoaded by remember { mutableStateOf(false) }

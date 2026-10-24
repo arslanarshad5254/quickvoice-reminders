@@ -12,7 +12,6 @@ import com.xovrix.quickvoicereminder.billing.BillingManager
 import com.xovrix.quickvoicereminder.data.AppDatabase
 import com.xovrix.quickvoicereminder.data.TaskRepository
 import com.xovrix.quickvoicereminder.data.SettingsManager
-import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,18 +37,14 @@ class QuickVoiceApp : Application() {
         super.onCreate()
         database = AppDatabase.getDatabase(this)
         repository = TaskRepository(this, database.taskDao())
-        billingManager = BillingManager(this, applicationScope)
+        billingManager = BillingManager(this)
         settingsManager = SettingsManager(this)
         initNotificationChannels()
         
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                MobileAds.initialize(this@QuickVoiceApp) {}
-            } catch (_: Exception) {}
-        }
     }
 
     private fun initNotificationChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val toneUriStr = settingsManager.notificationToneUri
         val soundUri = if (toneUriStr != null) Uri.parse(toneUriStr) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)

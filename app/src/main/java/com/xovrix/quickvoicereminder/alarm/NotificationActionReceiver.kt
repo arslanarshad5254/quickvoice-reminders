@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.xovrix.quickvoicereminder.data.AppDatabase
+import com.xovrix.quickvoicereminder.QuickVoiceApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,19 +27,14 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val db = AppDatabase.getDatabase(context)
+                val repository = (context.applicationContext as QuickVoiceApp).repository
                 val scheduler = ReminderAlarmScheduler(context)
 
                 when (action) {
                     ACTION_COMPLETE_TASK -> {
                         if (taskId > 0) {
                             Log.d(TAG, "Marking task $taskId as completed from notification")
-                            db.taskDao().setTaskCompletion(
-                                id = taskId,
-                                completed = true,
-                                completedAt = LocalDateTime.now().toString()
-                            )
-                            scheduler.cancel(taskId)
+                            repository.setTaskCompletion(taskId, true)
                         }
                     }
                     ACTION_SNOOZE_TASK -> {
@@ -47,7 +43,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             Log.d(TAG, "Snoozing task $taskId for 10 minutes")
                             
                             // Update task time in DB
-                            val task = db.taskDao().getTaskById(taskId)
+                            val task = repository.getTaskById(taskId)
                             if (task != null) {
                                 val newTime = LocalDateTime.now().plusMinutes(10)
                                 val updatedTask = task.copy(
@@ -55,8 +51,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                                     dueTime = newTime.format(DateTimeFormatter.ofPattern("HH:mm")),
                                     scheduledDateTime = newTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                                 )
-                                db.taskDao().updateTask(updatedTask)
-                                scheduler.schedule(updatedTask)
+                                repository.updateTask(updatedTask)
                             } else {
                                 scheduler.scheduleSnooze(taskId, taskTitle, 10)
                             }

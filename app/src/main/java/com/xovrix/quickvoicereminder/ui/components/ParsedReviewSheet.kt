@@ -32,8 +32,8 @@ fun ParsedReviewSheet(
     onDismiss: () -> Unit
 ) {
     var editableTask by remember { mutableStateOf(parsed.task) }
-    var editableDueDate by remember { mutableStateOf(parsed.dueDate ?: LocalDate.now().toString()) }
-    var editableDueTime by remember { mutableStateOf(parsed.dueTime ?: "09:00") }
+    var editableDueDate by remember { mutableStateOf(parsed.dueDate.orEmpty()) }
+    var editableDueTime by remember { mutableStateOf(parsed.dueTime.orEmpty()) }
     var editableCategory by remember { mutableStateOf(parsed.category) }
     var editableIsNag by remember { mutableStateOf(parsed.isNag) }
     var editableLocation by remember { mutableStateOf(parsed.location ?: "") }
@@ -46,7 +46,7 @@ fun ParsedReviewSheet(
 
     val categoryColor = CategoryUtils.getCategoryColor(editableCategory)
     val categoryIcon = CategoryUtils.getCategoryIcon(editableCategory)
-    val formattedDue = CategoryUtils.formatDueString(editableDueDate, editableDueTime)
+    val formattedDue = if (editableDueDate.isBlank()) "No schedule" else CategoryUtils.formatDueString(editableDueDate, editableDueTime)
 
     if (showDatePicker) {
         val initialEpoch = try {
@@ -224,7 +224,7 @@ fun ParsedReviewSheet(
                             )
                         }
                         Text(
-                            text = if (parsed.isAiParsed) "Gemini Extracted Reminder" else "Extracted Reminder",
+                            text = if (parsed.isAiParsed) "AI Extracted Reminder" else "Extracted Reminder",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -285,6 +285,12 @@ fun ParsedReviewSheet(
                         value = formattedDue,
                         onClick = { showDatePicker = true }
                     )
+                    if (editableDueDate.isNotBlank()) {
+                        TextButton(onClick = {
+                            editableDueDate = ""
+                            editableDueTime = ""
+                        }) { Text("Remove schedule") }
+                    }
 
                     // Category
                     DetailItem(
@@ -312,6 +318,18 @@ fun ParsedReviewSheet(
                         value = if (editableIsNag) "⚡ Nag Mode Active" else "Standard Alert",
                         onClick = { editableIsNag = !editableIsNag }
                     )
+                    if (parsed.isRecurring) {
+                        DetailItem(
+                            icon = Icons.Outlined.Repeat,
+                            iconTint = ElectricIndigo,
+                            label = "Repeats",
+                            value = buildString {
+                                append(parsed.recurrence ?: "Recurring")
+                                parsed.recurrenceDays?.takeIf { it.isNotEmpty() }?.let { append(" · ${it.joinToString()}") }
+                            },
+                            onClick = { }
+                        )
+                    }
                 }
 
                 // Actions
@@ -332,8 +350,8 @@ fun ParsedReviewSheet(
                             onConfirm(editableTask.let { 
                                 parsed.copy(
                                     task = editableTask,
-                                    dueDate = editableDueDate,
-                                    dueTime = editableDueTime,
+                                    dueDate = editableDueDate.ifBlank { null },
+                                    dueTime = editableDueTime.ifBlank { null },
                                     category = editableCategory,
                                     isNag = editableIsNag,
                                     location = editableLocation.ifBlank { null }

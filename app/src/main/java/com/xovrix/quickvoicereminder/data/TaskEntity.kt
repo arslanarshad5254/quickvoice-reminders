@@ -14,6 +14,13 @@ data class TaskEntity(
     val category: String = "General",      // Personal, Work, Errands, Health, Finance, General
     val location: String? = null,          // Location or geofence trigger
     val isNag: Boolean = false,            // Persistent periodic notification alerts until completed
+    val endDate: String? = null,
+    val endTime: String? = null,
+    val isAllDay: Boolean = false,
+    val isRecurring: Boolean = false,
+    val recurrence: String? = null,
+    val recurrenceDays: String? = null,    // Comma-separated DayOfWeek names
+    val recurrenceIntervalDays: Int? = null,
     val isCompleted: Boolean = false,
     val completedAt: String? = null,
     val createdAt: String = LocalDateTime.now().toString()

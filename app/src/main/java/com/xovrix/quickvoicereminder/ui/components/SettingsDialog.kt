@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -29,7 +30,8 @@ import com.xovrix.quickvoicereminder.ui.theme.ElectricIndigo
 fun SettingsDialog(
     currentToneUri: String?,
     onDismiss: () -> Unit,
-    onToneSelected: (String) -> Unit
+    onToneSelected: (String) -> Unit,
+    onPrivacyOptions: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -50,7 +52,12 @@ fun SettingsDialog(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val uri = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+            }
             uri?.let { onToneSelected(it.toString()) }
         }
     }
@@ -148,6 +155,15 @@ fun SettingsDialog(
                     fontSize = 11.sp,
                     lineHeight = 14.sp
                 )
+
+                OutlinedButton(
+                    onClick = onPrivacyOptions,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.PrivacyTip, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Privacy choices")
+                }
 
                 Button(
                     onClick = onDismiss,

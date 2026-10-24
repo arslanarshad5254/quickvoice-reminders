@@ -2,10 +2,14 @@ package com.xovrix.quickvoicereminder.ui
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlarmManager
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -53,6 +57,7 @@ fun QuickVoiceScreen(
     viewModel: ReminderViewModel,
     autoStartVoice: Boolean = false,
     onVoiceAutoStarted: () -> Unit = {},
+    onPrivacyOptions: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,7 +85,27 @@ fun QuickVoiceScreen(
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { _ -> }
+    ) { granted ->
+        if (!granted) viewModel.showMessage("Notifications are disabled; reminders cannot alert you")
+    }
+
+    val requestReminderPermissions = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                runCatching {
+                    context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    })
+                }.onFailure { viewModel.showMessage("Enable Alarms & reminders access for precise alerts") }
+            }
+        }
+    }
 
     // Automatically trigger voice recording when launched from widget shortcut
     LaunchedEffect(autoStartVoice, hasAudioPermission) {
@@ -98,18 +123,6 @@ fun QuickVoiceScreen(
     LaunchedEffect(uiState.isAdsFree) {
         if (!uiState.isAdsFree) {
             AdManager.loadInterstitial(context)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
         }
     }
 
@@ -277,9 +290,10 @@ fun QuickVoiceScreen(
                 task = taskToEdit,
                 onDismiss = viewModel::closeEditTask,
                 onSave = { updatedTask ->
+                    if (updatedTask.dueDate != null) requestReminderPermissions()
                     val isNew = updatedTask.id == 0L
-                    viewModel.updateTask(updatedTask)
-                    if (isNew) {
+                    val accepted = viewModel.updateTask(updatedTask)
+                    if (isNew && accepted) {
                         context.findActivity()?.let { act ->
                             AdManager.showInterstitialEveryNth(act, isAdsFree = uiState.isAdsFree)
                         }
@@ -293,9 +307,11 @@ fun QuickVoiceScreen(
             ParsedReviewSheet(
                 parsed = parsed,
                 onConfirm = { updatedParsed ->
-                    viewModel.confirmPendingTask(updatedParsed)
-                    context.findActivity()?.let { act ->
-                        AdManager.showInterstitialEveryNth(act, isAdsFree = uiState.isAdsFree)
+                    if (updatedParsed.dueDate != null) requestReminderPermissions()
+                    if (viewModel.confirmPendingTask(updatedParsed)) {
+                        context.findActivity()?.let { act ->
+                            AdManager.showInterstitialEveryNth(act, isAdsFree = uiState.isAdsFree)
+                        }
                     }
                 },
                 onDismiss = viewModel::dismissPendingTask
@@ -309,7 +325,8 @@ fun QuickVoiceScreen(
                 onDismiss = viewModel::closeSettingsDialog,
                 onToneSelected = { uri ->
                     viewModel.updateNotificationTone(uri)
-                }
+                },
+                onPrivacyOptions = onPrivacyOptions
             )
         }
 

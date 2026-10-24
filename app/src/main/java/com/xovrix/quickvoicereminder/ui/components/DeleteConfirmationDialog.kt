@@ -3,30 +3,32 @@
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.xovrix.quickvoicereminder.R
 import com.xovrix.quickvoicereminder.ui.theme.CoralRed
 
 @Composable
 fun DeleteConfirmationDialog(
-    title: String = "Delete Reminder?",
-    message: String = "Are you sure you want to delete this reminder? This action can be undone for a few seconds.",
+    title: String? = null,
+    message: String? = null,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = { Text(text = message) },
+        title = { Text(text = title ?: stringResource(R.string.delete_reminder_title)) },
+        text = { Text(text = message ?: stringResource(R.string.delete_reminder_message)) },
         confirmButton = {
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(containerColor = CoralRed)
             ) {
-                Text("Delete", color = Color.White)
+                Text(stringResource(R.string.action_delete), color = Color.White)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )

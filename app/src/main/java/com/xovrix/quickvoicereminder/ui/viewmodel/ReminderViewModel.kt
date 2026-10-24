@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.xovrix.quickvoicereminder.QuickVoiceApp
-import com.xovrix.quickvoicereminder.ai.GeminiTaskParser
+import com.xovrix.quickvoicereminder.ai.AiTaskParser
 import com.xovrix.quickvoicereminder.ai.ParsedTaskResult
 import com.xovrix.quickvoicereminder.data.TaskEntity
 import com.xovrix.quickvoicereminder.speech.SpeechManager
@@ -54,7 +54,7 @@ data class ReminderUiState(
     val speechState: SpeechState = SpeechState.Idle,
     val snackbarMessage: String? = null,
     val isAdsFree: Boolean = false,
-    val subPrice: String = "$5.00 / month",
+    val subPrice: String = "Price unavailable",
     val showUpgradeDialog: Boolean = false,
     val showSettingsDialog: Boolean = false,
     val currentToneUri: String? = null,
@@ -70,7 +70,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     private val repository = (application as QuickVoiceApp).repository
     val billingManager = (application as QuickVoiceApp).billingManager
     val settingsManager = (application as QuickVoiceApp).settingsManager
-    private val taskParser = GeminiTaskParser()
+    private val taskParser = AiTaskParser(application)
     val speechManager = SpeechManager(application)
 
     private val _uiState = MutableStateFlow(ReminderUiState(
@@ -201,6 +201,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun processInputAndSave(customInput: String? = null, autoSave: Boolean = false) {
+        if (_uiState.value.isParsingAi) return
         val textToParse = (customInput ?: _uiState.value.inputText).trim()
         if (textToParse.isBlank()) return
 
@@ -208,7 +209,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             _uiState.update {
                 it.copy(
                     isParsingAi = true,
-                    parsingFeedback = "Parsing with Gemini AI..."
+                    parsingFeedback = "Parsing with AI..."
                 )
             }
 
@@ -261,7 +262,11 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun confirmPendingTask(parsed: ParsedTaskResult) {
+    fun confirmPendingTask(parsed: ParsedTaskResult): Boolean {
+        scheduleValidationError(parsed.dueDate, parsed.dueTime)?.let { error ->
+            _uiState.update { it.copy(snackbarMessage = error) }
+            return false
+        }
         viewModelScope.launch {
             saveParsedTask(parsed)
             _uiState.update {
@@ -272,6 +277,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
                 )
             }
         }
+        return true
     }
 
     fun dismissPendingTask() {
@@ -287,6 +293,13 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             category = parsed.category,
             location = parsed.location,
             isNag = parsed.isNag,
+            endDate = parsed.endDate,
+            endTime = parsed.endTime,
+            isAllDay = parsed.isAllDay,
+            isRecurring = parsed.isRecurring,
+            recurrence = parsed.recurrence,
+            recurrenceDays = parsed.recurrenceDays?.joinToString(","),
+            recurrenceIntervalDays = parsed.recurrenceIntervalDays,
             isCompleted = false
         )
         repository.insertTask(taskEntity)
@@ -412,11 +425,12 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openNewTask() {
+        val defaultSchedule = LocalDateTime.now().plusHours(1).withMinute(0).withSecond(0).withNano(0)
         val newTask = TaskEntity(
             task = "",
             category = "General",
-            dueDate = LocalDate.now().toString(),
-            dueTime = "09:00"
+            dueDate = defaultSchedule.toLocalDate().toString(),
+            dueTime = defaultSchedule.toLocalTime().toString().take(5)
         )
         _uiState.update { it.copy(editingTask = newTask) }
     }
@@ -425,7 +439,11 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
         _uiState.update { it.copy(editingTask = null) }
     }
 
-    fun updateTask(updatedTask: TaskEntity) {
+    fun updateTask(updatedTask: TaskEntity): Boolean {
+        scheduleValidationError(updatedTask.dueDate, updatedTask.dueTime)?.let { error ->
+            _uiState.update { it.copy(snackbarMessage = error) }
+            return false
+        }
         viewModelScope.launch {
             if (updatedTask.id == 0L) {
                 repository.insertTask(updatedTask)
@@ -439,6 +457,7 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
                 )
             }
         }
+        return true
     }
 
     fun clearCompleted() {
@@ -489,5 +508,37 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
 
     fun closeSettingsDialog() {
         _uiState.update { it.copy(showSettingsDialog = false) }
+    }
+
+    fun showMessage(message: String) {
+        _uiState.update { it.copy(snackbarMessage = message) }
+    }
+
+    fun openTaskById(taskId: Long) {
+        viewModelScope.launch {
+            repository.getTaskById(taskId)?.let { task ->
+                _uiState.update { it.copy(editingTask = task) }
+            }
+        }
+    }
+
+    fun rescheduleActiveTasks() {
+        viewModelScope.launch { repository.rescheduleAll() }
+    }
+
+    private fun scheduleValidationError(date: String?, time: String?): String? {
+        if (date.isNullOrBlank()) return null
+        return runCatching {
+            val scheduled = LocalDateTime.of(
+                LocalDate.parse(date),
+                java.time.LocalTime.parse(time ?: "09:00")
+            )
+            if (!scheduled.isAfter(LocalDateTime.now())) "Choose a future date and time" else null
+        }.getOrElse { "The reminder date or time is invalid" }
+    }
+
+    override fun onCleared() {
+        speechManager.stopListening()
+        super.onCleared()
     }
 }

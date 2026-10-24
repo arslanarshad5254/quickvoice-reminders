@@ -6,18 +6,18 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 data class ParsedTaskResult(
     val task: String,
-    @Json(name = "due_date") val dueDate: String? = null,
-    @Json(name = "due_time") val dueTime: String? = null,
-    @Json(name = "end_date") val endDate: String? = null,
-    @Json(name = "end_time") val endTime: String? = null,
-    @Json(name = "is_all_day") val isAllDay: Boolean = false,
+    @param:Json(name = "due_date") val dueDate: String? = null,
+    @param:Json(name = "due_time") val dueTime: String? = null,
+    @param:Json(name = "end_date") val endDate: String? = null,
+    @param:Json(name = "end_time") val endTime: String? = null,
+    @param:Json(name = "is_all_day") val isAllDay: Boolean = false,
     val category: String = "General",
     val location: String? = null,
-    @Json(name = "is_nag") val isNag: Boolean = false,
-    @Json(name = "is_recurring") val isRecurring: Boolean = false,
+    @param:Json(name = "is_nag") val isNag: Boolean = false,
+    @param:Json(name = "is_recurring") val isRecurring: Boolean = false,
     val recurrence: String? = null,
-    @Json(name = "recurrence_days") val recurrenceDays: List<String>? = null,
-    @Json(name = "recurrence_interval_days") val recurrenceIntervalDays: Int? = null,
+    @param:Json(name = "recurrence_days") val recurrenceDays: List<String>? = null,
+    @param:Json(name = "recurrence_interval_days") val recurrenceIntervalDays: Int? = null,
     val isAiParsed: Boolean = false
 ) {
     val scheduledDateTime: String?

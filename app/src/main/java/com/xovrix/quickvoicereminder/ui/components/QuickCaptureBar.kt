@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -111,7 +112,7 @@ fun QuickCaptureBar(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Gemini AI extracting task, time & urgency...",
+                            text = "AI extracting task, time & urgency...",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -221,12 +222,14 @@ fun QuickCaptureBar(
                         }
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { onSendClicked() })
+                    keyboardActions = KeyboardActions(onDone = { if (!isParsing) onSendClicked() }),
+                    enabled = !isParsing || isListening
                 )
 
                 // Dynamic Action Button: Mic when input is blank, Send when text exists
                 val hasText = inputText.isNotBlank()
                 IconButton(
+                    enabled = !isParsing,
                     onClick = {
                         if (isListening) {
                             onStopVoice()
@@ -258,7 +261,7 @@ fun QuickCaptureBar(
                         )
                     } else if (hasText) {
                         Icon(
-                            imageVector = Icons.Filled.Send,
+                            imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Capture Reminder",
                             tint = Color.White,
                             modifier = Modifier.size(22.dp)

@@ -1,3 +1,5 @@
+@file:Suppress("RestrictedApi")
+
 package com.xovrix.quickvoicereminder.widget
 
 import android.content.ComponentName
@@ -45,6 +47,7 @@ import com.xovrix.quickvoicereminder.MainActivity
 import com.xovrix.quickvoicereminder.R
 import com.xovrix.quickvoicereminder.data.AppDatabase
 import com.xovrix.quickvoicereminder.data.TaskEntity
+import com.xovrix.quickvoicereminder.QuickVoiceApp
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -326,9 +329,9 @@ class CompleteTaskActionCallback : ActionCallback {
         parameters: ActionParameters
     ) {
         val taskId = parameters[taskIdKey] ?: return
-        val database = AppDatabase.getDatabase(context)
-        database.taskDao().setTaskCompletion(taskId, true, LocalDateTime.now().toString())
-        QuickVoiceWidget().update(context, glanceId)
+        val repository = (context.applicationContext as QuickVoiceApp).repository
+        repository.setTaskCompletion(taskId, true)
+        QuickVoiceWidget().updateAll(context)
     }
 }
 

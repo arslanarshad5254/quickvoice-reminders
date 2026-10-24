@@ -12,6 +12,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.DayOfWeek
+import java.time.temporal.ChronoUnit
 
 class ReminderAlarmScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -39,7 +41,7 @@ class ReminderAlarmScheduler(private val context: Context) {
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            task.id.toInt(),
+            mainRequestCode(task.id),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -84,23 +86,28 @@ class ReminderAlarmScheduler(private val context: Context) {
             putExtra(EXTRA_TASK_ID, taskId)
             putExtra(EXTRA_TASK_TITLE, taskTitle)
             putExtra(EXTRA_IS_NAG, true)
+            putExtra(EXTRA_IS_NAG_REPEAT, true)
             putExtra(EXTRA_CATEGORY, category)
             putExtra(EXTRA_LOCATION, location)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            taskId.toInt(),
+            nagRequestCode(taskId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         try {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                nextTrigger,
-                pendingIntent
-            )
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    nextTrigger,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextTrigger, pendingIntent)
+            }
             Log.d(TAG, "Scheduled Nag repeat for task $taskId in 5 mins")
         } catch (e: Exception) {
             alarmManager.set(AlarmManager.RTC_WAKEUP, nextTrigger, pendingIntent)
@@ -118,7 +125,7 @@ class ReminderAlarmScheduler(private val context: Context) {
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            taskId.toInt(),
+            mainRequestCode(taskId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -158,7 +165,7 @@ class ReminderAlarmScheduler(private val context: Context) {
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            taskId.toInt(),
+            mainRequestCode(taskId),
             intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
@@ -167,6 +174,69 @@ class ReminderAlarmScheduler(private val context: Context) {
             pendingIntent.cancel()
             Log.d(TAG, "Cancelled alarm for task $taskId")
         }
+        val nagIntent = Intent(context, ReminderAlarmReceiver::class.java).apply {
+            action = ACTION_TRIGGER_REMINDER
+        }
+        PendingIntent.getBroadcast(
+            context,
+            nagRequestCode(taskId),
+            nagIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )?.let {
+            alarmManager.cancel(it)
+            it.cancel()
+        }
+    }
+
+    fun nextRecurringOccurrence(task: TaskEntity, after: LocalDateTime = LocalDateTime.now()): TaskEntity? {
+        if (!task.isRecurring || task.recurrence.isNullOrBlank()) return null
+        val base = task.scheduledDateTime?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+            ?: task.dueDate?.let { date ->
+                runCatching { LocalDateTime.of(LocalDate.parse(date), task.dueTime?.let(LocalTime::parse) ?: LocalTime.of(9, 0)) }.getOrNull()
+            } ?: return null
+
+        var next = when (task.recurrence.lowercase()) {
+            "daily" -> base.plusDays(1)
+            "custom" -> base.plusDays((task.recurrenceIntervalDays ?: 1).coerceAtLeast(1).toLong())
+            "monthly" -> base.plusMonths(1)
+            "yearly" -> base.plusYears(1)
+            "weekly" -> {
+                val days = task.recurrenceDays
+                    ?.split(',')
+                    ?.mapNotNull { runCatching { DayOfWeek.valueOf(it.trim()) }.getOrNull() }
+                    ?.toSet()
+                    .orEmpty()
+                    .ifEmpty { setOf(base.dayOfWeek) }
+                var candidate = after.toLocalDate().atTime(base.toLocalTime()).plusDays(1)
+                while (candidate.dayOfWeek !in days) candidate = candidate.plusDays(1)
+                candidate
+            }
+            else -> return null
+        }
+        while (!next.isAfter(after)) {
+            next = when (task.recurrence.lowercase()) {
+                "daily" -> next.plusDays(1)
+                "custom" -> next.plusDays((task.recurrenceIntervalDays ?: 1).coerceAtLeast(1).toLong())
+                "monthly" -> next.plusMonths(1)
+                "yearly" -> next.plusYears(1)
+                "weekly" -> next.plusWeeks(1)
+                else -> return null
+            }
+        }
+
+        val end = task.endDate?.let { endDate ->
+            runCatching {
+                LocalDateTime.of(LocalDate.parse(endDate), task.endTime?.let(LocalTime::parse) ?: LocalTime.of(23, 59))
+            }.getOrNull()
+        }
+        val shiftedEnd = end?.let { next.plusMinutes(ChronoUnit.MINUTES.between(base, it)) }
+        return task.copy(
+            dueDate = next.toLocalDate().toString(),
+            dueTime = if (task.isAllDay) null else next.toLocalTime().toString().take(5),
+            scheduledDateTime = next.toString(),
+            endDate = shiftedEnd?.toLocalDate()?.toString(),
+            endTime = shiftedEnd?.toLocalTime()?.toString()?.take(5)
+        )
     }
 
     private fun calculateTriggerEpoch(task: TaskEntity): Long? {
@@ -205,7 +275,11 @@ class ReminderAlarmScheduler(private val context: Context) {
         const val EXTRA_TASK_ID = "TASK_ID"
         const val EXTRA_TASK_TITLE = "TASK_TITLE"
         const val EXTRA_IS_NAG = "IS_NAG"
+        const val EXTRA_IS_NAG_REPEAT = "IS_NAG_REPEAT"
         const val EXTRA_CATEGORY = "CATEGORY"
         const val EXTRA_LOCATION = "LOCATION"
+
+        private fun mainRequestCode(taskId: Long): Int = taskId.toInt()
+        private fun nagRequestCode(taskId: Long): Int = taskId.toInt() xor Int.MIN_VALUE
     }
 }

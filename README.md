@@ -1,6 +1,6 @@
 # QuickVoice Reminders 🎙️✅
 
-**QuickVoice** is a high-performance Android reminder application designed for speed and simplicity. It allows users to schedule reminders in under 3 seconds using natural language—whether spoken or typed. Powered by Gemini AI and a resilient local NLP engine, it understands "when" and "what" you need to do without requiring complex manual form filling.
+**QuickVoice** is a high-performance Android reminder application designed for speed and simplicity. It allows users to schedule reminders in under 3 seconds using natural language—whether spoken or typed. Its secure AI service and resilient local parser understand "when" and "what" you need to do without requiring complex manual form filling.
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 1. Ultra-Fast capture
 * **Hybrid AI-Local Parsing**: Uses a smart "AI-First, Heuristic-Fallback" architecture.
-* **AI Engine**: Uses Google's **Gemini 2.5 Flash** (via Firebase AI) to extract tasks, dates, times, locations, and urgency from complex, unstructured sentences like *"Remind me next Friday at noon to follow up with the guy I met at the gym"*.
+* **AI Engine**: Uses a server-side AI service to extract tasks, dates, times, locations, and urgency from complex, unstructured sentences like *"Remind me next Friday at noon to follow up with the guy I met at the gym"*.
 * **Resilient Offline NLP**: If the internet is down or an API key is not provided, a rule-based heuristic parser takes over in <5ms. This ensures basic reminders like *"Buy milk after 10 minutes"* or *"Call mom tomorrow at 5pm"* always work instantly.
 * **Manual Entry (+)**: A dedicated Floating Action Button for those who prefer traditional manual reminder creation with smart defaults.
 * **Voice-to-Text Review**: Speak your reminder, review the transcript, and edit details in an interactive popup before saving.
@@ -38,8 +38,9 @@
 * **UI Framework**: Jetpack Compose (Material 3)
 * **Architecture**: MVVM with StateFlow and Coroutines
 * **Database**: Room Persistence Library
-* **AI/NLP**: Google Gemini 2.5 Flash & Custom Rule-based NLP
-* **Networking**: Retrofit & OkHttp
+* **AI/NLP**: Server-side AI parsing and custom rule-based NLP
+* **Backend**: Node.js, Express, and PostgreSQL
+* **Networking**: OkHttp
 * **Background Tasks**: AlarmManager for precise scheduling
 * **Ads**: Google AdMob (Optimized frequency: Interstitial every 3rd schedule)
 * **Widgets**: Android Glance (Jetpack Compose for Widgets)
@@ -54,12 +55,12 @@
 * An Android device or emulator (API 24+).
 
 ### API Configuration
-The project uses the **Secrets Gradle Plugin** to manage sensitive keys.
-1. Obtain a **Gemini API Key** from the [Google AI Studio](https://aistudio.google.com/).
+Provider credentials belong only in `backend/.env`; they are never included in the Android build. See `backend/README.md` for server and PostgreSQL setup.
+1. Deploy or start the backend.
 2. Create a file named `.env` in the root directory of the project.
-3. Add your key to the file:
+3. Add the public backend URL:
    ```env
-   GEMINI_API_KEY=your_api_key_here
+   BACKEND_BASE_URL=https://api.example.com
    ```
 
 ### Building the Project

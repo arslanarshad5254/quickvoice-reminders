@@ -11,6 +11,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.xovrix.quickvoicereminder.MainActivity
 import com.xovrix.quickvoicereminder.QuickVoiceApp
 import com.xovrix.quickvoicereminder.R
@@ -26,6 +27,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val taskId = intent.getLongExtra(ReminderAlarmScheduler.EXTRA_TASK_ID, -1L)
         val taskTitle = intent.getStringExtra(ReminderAlarmScheduler.EXTRA_TASK_TITLE) ?: "Reminder Alert"
         val isNag = intent.getBooleanExtra(ReminderAlarmScheduler.EXTRA_IS_NAG, false)
+        val isNagRepeat = intent.getBooleanExtra(ReminderAlarmScheduler.EXTRA_IS_NAG_REPEAT, false)
         val category = intent.getStringExtra(ReminderAlarmScheduler.EXTRA_CATEGORY) ?: "General"
         val location = intent.getStringExtra(ReminderAlarmScheduler.EXTRA_LOCATION)
 
@@ -35,12 +37,11 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                val app = context.applicationContext as QuickVoiceApp
+                var task = if (taskId > 0) app.repository.getTaskById(taskId) else null
                 if (taskId > 0) {
-                    val db = AppDatabase.getDatabase(context)
-                    val task = db.taskDao().getTaskById(taskId)
-                    if (task != null && task.isCompleted) {
-                        Log.d(TAG, "Task $taskId is already completed, discarding alert.")
-                        pendingResult.finish()
+                    if (task == null || task.isCompleted) {
+                        Log.d(TAG, "Task $taskId is missing or completed, discarding alert.")
                         return@launch
                     }
                 }
@@ -55,8 +56,16 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
                 showNotification(context, taskId, taskTitle, isNag, category, location, channelId)
 
+                if (task?.isRecurring == true && !isNagRepeat) {
+                    val scheduler = ReminderAlarmScheduler(context)
+                    scheduler.nextRecurringOccurrence(task)?.let { nextTask ->
+                        app.repository.updateTask(nextTask)
+                        task = nextTask
+                    }
+                }
+
                 // If Nag Mode is active, automatically schedule repeating alarm in 5 minutes
-                if (isNag && taskId > 0) {
+                if (isNag && taskId > 0 && NotificationManagerCompat.from(context).areNotificationsEnabled()) {
                     val scheduler = ReminderAlarmScheduler(context)
                     scheduler.scheduleNagRepeat(taskId, taskTitle, category, location)
                 }
@@ -127,13 +136,13 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         val subtext = buildString {
             append("[$category]")
-            if (isNag) append(" • Persistent Nag Mode ⚡")
-            if (!location.isNullOrBlank()) append(" • 📍 $location")
+            if (isNag) append(context.getString(R.string.notification_nag_suffix))
+            if (!location.isNullOrBlank()) append(context.getString(R.string.notification_location, location))
         }
 
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("QuickVoice Reminder")
+            .setContentTitle(context.getString(R.string.notification_title))
             .setContentText(taskTitle)
             .setSubText(subtext)
             .setStyle(NotificationCompat.BigTextStyle().bigText("$taskTitle\n$subtext"))
@@ -143,14 +152,15 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             .setSound(soundUri)
             .setVibrate(longArrayOf(0, 400, 200, 400, 200, 400))
             .setAutoCancel(true)
-            .addAction(android.R.drawable.checkbox_on_background, "✓ Mark Done", completePendingIntent)
-            .addAction(android.R.drawable.ic_popup_reminder, "⏱ Snooze 10m", snoozePendingIntent)
+            .addAction(android.R.drawable.checkbox_on_background, context.getString(R.string.notification_mark_done), completePendingIntent)
+            .addAction(android.R.drawable.ic_popup_reminder, context.getString(R.string.notification_snooze), snoozePendingIntent)
 
         val notifId = if (taskId > 0) taskId.toInt() else (System.currentTimeMillis() % 10000).toInt()
         notificationManager.notify(notifId, builder.build())
     }
 
     private fun createNotificationChannels(notificationManager: NotificationManager, context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val settingsManager = (context.applicationContext as QuickVoiceApp).settingsManager
         val toneUriStr = settingsManager.notificationToneUri
         val soundUri = if (toneUriStr != null) Uri.parse(toneUriStr) else RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
@@ -166,7 +176,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
             context.getString(R.string.reminder_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Standard task reminder alerts"
+            description = context.getString(R.string.standard_channel_description)
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 300, 200, 300)
             setSound(soundUri, audioAttributes)
@@ -175,18 +185,24 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
         val nagChannelId = "${CHANNEL_ID_NAG}_${toneUriStr.hashCode()}"
         val nagChannel = NotificationChannel(
             nagChannelId,
-            "Urgent Nag Reminders",
+            context.getString(R.string.urgent_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "High-urgency persistent reminders repeating every 5 minutes until checked off"
+            description = context.getString(R.string.urgent_channel_description)
             enableVibration(true)
             vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 500)
             setSound(soundUri, audioAttributes)
-            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
         }
 
         notificationManager.createNotificationChannel(defaultChannel)
         notificationManager.createNotificationChannel(nagChannel)
+        notificationManager.notificationChannels
+            .filter {
+                (it.id.startsWith(CHANNEL_ID_DEFAULT) || it.id.startsWith(CHANNEL_ID_NAG)) &&
+                        it.id != defaultChannelId && it.id != nagChannelId
+            }
+            .forEach { notificationManager.deleteNotificationChannel(it.id) }
     }
 
     companion object {

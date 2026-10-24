@@ -14,6 +14,9 @@ import com.xovrix.quickvoicereminder.ui.QuickVoiceScreen
 import com.xovrix.quickvoicereminder.ui.theme.MyApplicationTheme
 import com.xovrix.quickvoicereminder.ui.viewmodel.ReminderViewModel
 import com.xovrix.quickvoicereminder.update.UpdateManager
+import com.xovrix.quickvoicereminder.ads.AdManager
+import com.xovrix.quickvoicereminder.ads.AdsConsentManager
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
 
@@ -25,10 +28,16 @@ class MainActivity : ComponentActivity() {
     private val viewModel: ReminderViewModel by viewModels()
     private var triggerVoiceOnStart by mutableStateOf(false)
     private lateinit var updateManager: UpdateManager
+    private lateinit var adsConsentManager: AdsConsentManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         updateManager = UpdateManager(this)
+        adsConsentManager = AdsConsentManager(this)
+        adsConsentManager.gatherConsent(this) { canRequestAds ->
+            AdManager.setConsentStatus(canRequestAds)
+            if (canRequestAds) MobileAds.initialize(this) {}
+        }
         updateManager.checkForUpdates()
         checkVoiceIntent(intent)
         enableEdgeToEdge()
@@ -38,7 +47,8 @@ class MainActivity : ComponentActivity() {
                     QuickVoiceScreen(
                         viewModel = viewModel,
                         autoStartVoice = triggerVoiceOnStart,
-                        onVoiceAutoStarted = { triggerVoiceOnStart = false }
+                        onVoiceAutoStarted = { triggerVoiceOnStart = false },
+                        onPrivacyOptions = { adsConsentManager.showPrivacyOptions(this) }
                     )
                 }
             }
@@ -54,6 +64,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updateManager.onResume()
+        viewModel.rescheduleActiveTasks()
     }
 
     override fun onDestroy() {
@@ -67,6 +78,10 @@ class MainActivity : ComponentActivity() {
                     intent.getBooleanExtra(EXTRA_START_VOICE, false)
             if (isVoiceAction) {
                 triggerVoiceOnStart = true
+            }
+            intent.getLongExtra("OPEN_TASK_ID", -1L).takeIf { it > 0 }?.let {
+                viewModel.openTaskById(it)
+                intent.removeExtra("OPEN_TASK_ID")
             }
         }
     }

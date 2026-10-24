@@ -30,13 +30,13 @@ This document contains SEO/ASO optimized content for the Google Play Store listi
 
 **Transform your voice into action with QuickVoice Reminders—the fastest way to stay organized on Android.**
 
-Tired of typing out every single task? QuickVoice uses the power of **Gemini AI** to understand your natural speech and schedule reminders in under 3 seconds. Simply speak or type what you need to do, and our smart engine handles the rest.
+Tired of typing out every single task? QuickVoice uses **AI** to understand your natural speech and schedule reminders in under 3 seconds. Simply speak or type what you need to do, and our smart engine handles the rest.
 
 ### 🎙️ VOICE-FIRST PRODUCTIVITY
 Whether you say *"Remind me to call the doctor tomorrow at 10:30 AM"* or *"Buy milk after 10 minutes"*, QuickVoice extracts the task, date, and time accurately. No more fiddling with manual date pickers.
 
 ### 🤖 HYBRID AI & OFFLINE PARSING
-* **Gemini AI Powered:** For complex requests, our AI engine identifies locations, categories, and urgency.
+* **AI Powered:** For complex requests, our AI engine identifies locations, categories, and urgency.
 * **Resilient Offline NLP:** No internet? No problem. Our high-speed local parser ensures your reminders are saved instantly even in "Airplane Mode".
 
 ### ⚡ NEVER FORGET WITH NAG MODE

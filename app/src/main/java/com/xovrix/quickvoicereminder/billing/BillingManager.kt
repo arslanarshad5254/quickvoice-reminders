@@ -5,16 +5,12 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import com.android.billingclient.api.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class BillingManager(
-    private val context: Context,
-    private val scope: CoroutineScope
+    private val context: Context
 ) : PurchasesUpdatedListener, BillingClientStateListener {
 
     companion object {
@@ -30,7 +26,7 @@ class BillingManager(
     private val _isAdsFree = MutableStateFlow(prefs.getBoolean(KEY_IS_ADS_FREE, false))
     val isAdsFree: StateFlow<Boolean> = _isAdsFree.asStateFlow()
 
-    private val _formattedPrice = MutableStateFlow("$5.00 / month")
+    private val _formattedPrice = MutableStateFlow("Price unavailable")
     val formattedPrice: StateFlow<String> = _formattedPrice.asStateFlow()
 
     private val _productDetails = MutableStateFlow<ProductDetails?>(null)
@@ -103,9 +99,9 @@ class BillingManager(
                 _productDetails.value = details
 
                 details?.subscriptionOfferDetails?.firstOrNull()?.let { offer ->
-                    val pricing = offer.pricingPhases.pricingPhaseList.firstOrNull()
+                    val pricing = offer.pricingPhases.pricingPhaseList.lastOrNull()
                     if (pricing != null) {
-                        _formattedPrice.value = "${pricing.formattedPrice} / month"
+                        _formattedPrice.value = pricing.formattedPrice
                     }
                 }
             } else {
@@ -121,18 +117,12 @@ class BillingManager(
 
         billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                var hasActiveSub = false
-                for (purchase in purchases) {
-                    if (purchase.products.contains(SUB_MONTHLY_AD_FREE) &&
-                        purchase.purchaseState == Purchase.PurchaseState.PURCHASED
-                    ) {
-                        hasActiveSub = true
-                        if (!purchase.isAcknowledged) {
-                            acknowledgePurchase(purchase)
-                        }
-                    }
+                val purchase = purchases.firstOrNull {
+                    it.products.contains(SUB_MONTHLY_AD_FREE) &&
+                            it.purchaseState == Purchase.PurchaseState.PURCHASED
                 }
-                updateAdsFreeStatus(hasActiveSub)
+                updateAdsFreeStatus(purchase != null)
+                if (purchase != null && !purchase.isAcknowledged) acknowledgePurchase(purchase)
             } else {
                 Log.w(TAG, "Failed to query active purchases: ${billingResult.debugMessage}")
             }
@@ -143,17 +133,12 @@ class BillingManager(
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases != null) {
-                    var activated = false
-                    for (purchase in purchases) {
-                        if (purchase.products.contains(SUB_MONTHLY_AD_FREE) &&
-                            purchase.purchaseState == Purchase.PurchaseState.PURCHASED
-                        ) {
-                            activated = true
-                            acknowledgePurchase(purchase)
-                        }
-                    }
-                    if (activated) {
+                    purchases.firstOrNull {
+                        it.products.contains(SUB_MONTHLY_AD_FREE) &&
+                                it.purchaseState == Purchase.PurchaseState.PURCHASED
+                    }?.let { purchase ->
                         updateAdsFreeStatus(true)
+                        if (!purchase.isAcknowledged) acknowledgePurchase(purchase)
                         _purchaseStatusMessage.value = "Thank you! Ads-Free subscription is now active."
                     }
                 }
@@ -162,8 +147,8 @@ class BillingManager(
                 _purchaseStatusMessage.value = "Subscription purchase was cancelled."
             }
             BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
-                updateAdsFreeStatus(true)
-                _purchaseStatusMessage.value = "Your Ads-Free subscription is already active."
+                queryActivePurchases()
+                _purchaseStatusMessage.value = "Checking your existing subscription..."
             }
             else -> {
                 _purchaseStatusMessage.value = "Purchase error: ${billingResult.debugMessage}"
@@ -172,15 +157,14 @@ class BillingManager(
     }
 
     private fun acknowledgePurchase(purchase: Purchase) {
-        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+        val params = AcknowledgePurchaseParams.newBuilder()
             .setPurchaseToken(purchase.purchaseToken)
             .build()
-
-        billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.d(TAG, "Purchase acknowledged successfully: ${purchase.orderId}")
+        billingClient.acknowledgePurchase(params) { result ->
+            if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+                Log.d(TAG, "Purchase acknowledged successfully")
             } else {
-                Log.w(TAG, "Purchase acknowledgement failed: ${billingResult.debugMessage}")
+                Log.w(TAG, "Purchase acknowledgement failed: ${result.debugMessage}")
             }
         }
     }

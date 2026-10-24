@@ -36,13 +36,17 @@ class BackendApiClient private constructor(context: Context) {
         .build()
         .adapter(ParsedTaskResult::class.java)
 
-    suspend fun parseReminder(input: String): ParsedTaskResult? = withContext(Dispatchers.IO) {
+    suspend fun parseReminder(
+        input: String,
+        clientParsed: ParsedTaskResult
+    ): ParsedTaskResult? = withContext(Dispatchers.IO) {
         post(
             "/v1/ai/parse",
             JSONObject()
                 .put("input", input)
                 .put("currentDateTime", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
                 .put("timeZone", ZoneId.systemDefault().id)
+                .put("clientParsed", JSONObject(parsedTaskAdapter.toJson(clientParsed)))
         )?.let { parsedTaskAdapter.fromJson(it) }?.copy(isAiParsed = true)
     }
 

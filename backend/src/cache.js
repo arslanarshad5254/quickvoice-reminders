@@ -35,17 +35,23 @@ async function findCachedResponse(clientId, cacheKey) {
       `UPDATE ai_prompt_responses
           SET hit_count = hit_count + 1, last_used_at = NOW()
         WHERE client_id = $1 AND cache_key = $2 AND expires_at > NOW()
-        RETURNING response`,
+        RETURNING response, prompt_tokens, completion_tokens, estimated_cost_usd`,
       [clientId, cacheKey]
     );
-    return result.rows[0]?.response ?? null;
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      result: row.response,
+      savedTokens: (row.prompt_tokens ?? 0) + (row.completion_tokens ?? 0),
+      savedCostUsd: Number(row.estimated_cost_usd ?? 0)
+    };
   } catch (error) {
     console.error("Unable to read AI response cache", error);
     return null;
   }
 }
 
-async function storePromptResponse(clientId, payload, response, cacheKey) {
+async function storePromptResponse(clientId, payload, response, cacheKey, usage) {
   const context = JSON.stringify({
     currentDateTime: payload.currentDateTime,
     timeZone: payload.timeZone
@@ -55,24 +61,38 @@ async function storePromptResponse(clientId, payload, response, cacheKey) {
     if (cacheKey) {
       await pool.query(
         `INSERT INTO ai_prompt_responses
-           (client_id, cache_key, prompt, request_context, response, cacheable, expires_at)
-         VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, TRUE, NOW() + ($6::int * INTERVAL '1 day'))
+           (client_id, cache_key, prompt, request_context, response, cacheable, expires_at,
+            intent, structured_parameters, prompt_tokens, completion_tokens, estimated_cost_usd)
+         VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, TRUE, NOW() + ($6::int * INTERVAL '1 day'),
+                 'schedule_reminder', $5::jsonb, $7, $8, $9)
          ON CONFLICT (client_id, cache_key) WHERE cache_key IS NOT NULL
          DO UPDATE SET
            prompt = EXCLUDED.prompt,
            request_context = EXCLUDED.request_context,
            response = EXCLUDED.response,
+           structured_parameters = EXCLUDED.structured_parameters,
+           prompt_tokens = EXCLUDED.prompt_tokens,
+           completion_tokens = EXCLUDED.completion_tokens,
+           estimated_cost_usd = EXCLUDED.estimated_cost_usd,
            updated_at = NOW(),
            last_used_at = NOW(),
            expires_at = EXCLUDED.expires_at`,
-        [clientId, cacheKey, payload.input, context, serializedResponse, CACHE_TTL_DAYS]
+        [
+          clientId, cacheKey, payload.input, context, serializedResponse, CACHE_TTL_DAYS,
+          usage.promptTokens, usage.completionTokens, usage.estimatedCostUsd
+        ]
       );
     } else {
       await pool.query(
         `INSERT INTO ai_prompt_responses
-           (client_id, cache_key, prompt, request_context, response, cacheable, expires_at)
-         VALUES ($1, NULL, $2, $3::jsonb, $4::jsonb, FALSE, NOW() + ($5::int * INTERVAL '1 day'))`,
-        [clientId, payload.input, context, serializedResponse, HISTORY_RETENTION_DAYS]
+           (client_id, cache_key, prompt, request_context, response, cacheable, expires_at,
+            intent, structured_parameters, prompt_tokens, completion_tokens, estimated_cost_usd)
+         VALUES ($1, NULL, $2, $3::jsonb, $4::jsonb, FALSE, NOW() + ($5::int * INTERVAL '1 day'),
+                 'schedule_reminder', $4::jsonb, $6, $7, $8)`,
+        [
+          clientId, payload.input, context, serializedResponse, HISTORY_RETENTION_DAYS,
+          usage.promptTokens, usage.completionTokens, usage.estimatedCostUsd
+        ]
       );
     }
 

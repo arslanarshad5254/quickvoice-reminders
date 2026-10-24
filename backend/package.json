@@ -10,7 +10,7 @@
     "start": "node app.js",
     "migrate": "node src/migrate.js",
     "test": "node --test",
-    "check": "node --check app.js && node --check src/app.js && node --check src/ai.js && node --check src/cache.js"
+    "check": "node --check app.js && node --check src/app.js && node --check src/ai.js && node --check src/cache.js && node --check src/knowledge.js"
   },
   "dependencies": {
     "dotenv": "^17.0.0",

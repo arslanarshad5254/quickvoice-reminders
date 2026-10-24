@@ -272,7 +272,7 @@ fun TaskCard(
                             if (task.isCompleted) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
-                                    contentDescription = "Completed",
+                                    contentDescription = "Mark as not done",
                                     tint = Color.White,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -295,6 +295,34 @@ fun TaskCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
+                }
+
+                if (task.isCompleted && !isSelectionMode) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 48.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(
+                            onClick = onToggleComplete,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .heightIn(min = 36.dp)
+                                .testTag("task_mark_not_done_${task.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Restore,
+                                contentDescription = null,
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "Mark not done",
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
 
                 // Bottom Info Bar: Date/Time + Location

@@ -58,3 +58,33 @@ test("AI cache bypasses requests whose answer changes with the current minute", 
   assert.equal(createCacheKey({ ...context, input: "Call the dentist at 3 PM" }), null);
 });
 
+test("semantic signatures match equivalent reminder wording without personal values", () => {
+  const { semanticSignature, similarity } = require("../src/knowledge.js");
+  const first = semanticSignature({
+    input: "Schedule a reminder for 10 AM tomorrow",
+    clientParsed: { due_date: "2026-10-25", due_time: "10:00" }
+  });
+  const second = semanticSignature({
+    input: "Set a reminder tomorrow at 9 AM",
+    clientParsed: { due_date: "2026-10-25", due_time: "09:00" }
+  });
+
+  assert.equal(similarity(first, second), 1);
+  assert.equal(first.includes("10"), false);
+  assert.equal(second.includes("9"), false);
+});
+
+test("semantic signatures keep different reminder actions separated", () => {
+  const { semanticSignature, similarity } = require("../src/knowledge.js");
+  const call = semanticSignature({
+    input: "Call Mom tomorrow at 3 PM",
+    clientParsed: { due_date: "2026-10-25", due_time: "15:00" }
+  });
+  const buy = semanticSignature({
+    input: "Buy milk tomorrow at 3 PM",
+    clientParsed: { due_date: "2026-10-25", due_time: "15:00" }
+  });
+
+  assert.ok(similarity(call, buy) < 0.85);
+});
+

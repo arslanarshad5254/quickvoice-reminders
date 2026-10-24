@@ -19,7 +19,10 @@ const schema = z.object({
   AI_API_KEY: z.string().min(1),
   AI_API_URL: z.string().url().default("https://api.groq.com/openai/v1/chat/completions"),
   AI_MODEL: z.string().min(1).default("openai/gpt-oss-20b"),
-  AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(20)
+  AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(20),
+  AI_SEMANTIC_THRESHOLD: z.coerce.number().min(0.5).max(1).default(0.85),
+  AI_INPUT_COST_PER_MILLION: z.coerce.number().min(0).default(0),
+  AI_OUTPUT_COST_PER_MILLION: z.coerce.number().min(0).default(0)
 });
 
 const parsed = schema.safeParse(process.env);

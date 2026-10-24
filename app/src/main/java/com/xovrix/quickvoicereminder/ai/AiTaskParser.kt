@@ -24,8 +24,10 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
             return@withContext ParsedTaskResult(task = "New Reminder")
         }
 
+        val localResult = parseLocally(trimmed)
+
         try {
-            val aiResult = backendApi?.parseReminder(trimmed)
+            val aiResult = backendApi?.parseReminder(trimmed, localResult)
             if (aiResult != null && aiResult.task.isNotBlank()) {
                 return@withContext validateAiResult(aiResult)
             }
@@ -34,7 +36,7 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
         }
 
         // Resilient Offline Local NLP Heuristic Parser
-        parseLocally(trimmed)
+        localResult
     }
 
     private fun validateAiResult(result: ParsedTaskResult): ParsedTaskResult {

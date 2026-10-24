@@ -12,6 +12,8 @@ class SettingsManager(context: Context) {
     }
 
     var notificationToneUri: String?
-        get() = prefs.getString(KEY_NOTIFICATION_TONE, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString())
+        get() = prefs.getString(KEY_NOTIFICATION_TONE, null)
+            ?: (RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))?.toString()
         set(value) = prefs.edit().putString(KEY_NOTIFICATION_TONE, value).apply()
 }

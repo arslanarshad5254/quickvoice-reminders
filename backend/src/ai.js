@@ -3,12 +3,6 @@ const { config } = require("./config.js");
 const { pool } = require("./db.js");
 const { reminderParserPrompt } = require("./prompt.js");
 
-const parseRequestSchema = z.object({
-  input: z.string().trim().min(1).max(2_000),
-  currentDateTime: z.iso.datetime({ local: true }).or(z.iso.datetime()),
-  timeZone: z.string().trim().min(1).max(100)
-});
-
 const nullableDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null);
 const nullableTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable().default(null);
 const categories = ["Personal", "Work", "Errands", "Health", "Finance", "General"];
@@ -31,13 +25,19 @@ const parsedReminderSchema = z.object({
   recurrence_interval_days: z.number().int().min(1).max(3650).nullable().default(null)
 });
 
+const parseRequestSchema = z.object({
+  input: z.string().trim().min(1).max(2_000),
+  currentDateTime: z.iso.datetime({ local: true }).or(z.iso.datetime()),
+  timeZone: z.string().trim().min(1).max(100),
+  clientParsed: parsedReminderSchema.optional()
+});
+
 function extractJson(text) {
   const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/```$/, "").trim();
   return JSON.parse(cleaned);
 }
 
 async function parseReminder(payload) {
-  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
@@ -62,18 +62,47 @@ async function parseReminder(payload) {
     const body = await response.json();
     const content = body?.choices?.[0]?.message?.content;
     if (!content) throw Object.assign(new Error("AI provider returned no content"), { code: "AI_EMPTY" });
-    return parsedReminderSchema.parse(extractJson(content));
+    const promptTokens = Number(body?.usage?.prompt_tokens ?? 0);
+    const completionTokens = Number(body?.usage?.completion_tokens ?? 0);
+    const estimatedCostUsd =
+      (promptTokens * config.AI_INPUT_COST_PER_MILLION +
+       completionTokens * config.AI_OUTPUT_COST_PER_MILLION) / 1_000_000;
+    return {
+      result: parsedReminderSchema.parse(extractJson(content)),
+      usage: {
+        promptTokens,
+        completionTokens,
+        totalTokens: Number(body?.usage?.total_tokens ?? promptTokens + completionTokens),
+        estimatedCostUsd
+      }
+    };
   } finally {
     clearTimeout(timeout);
   }
 }
 
-async function recordAiRequest(clientId, inputLength, startedAt, errorCode = null, cacheHit = false) {
+async function recordAiRequest(clientId, inputLength, startedAt, details = {}) {
+  const {
+    errorCode = null,
+    cacheStrategy = "ai",
+    aiApiCalled = true,
+    usage = {},
+    savedTokens = 0,
+    savedCostUsd = 0
+  } = details;
   try {
     await pool.query(
-      `INSERT INTO ai_requests(client_id, input_length, succeeded, latency_ms, error_code, cache_hit)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [clientId, inputLength, errorCode === null, Date.now() - startedAt, errorCode, cacheHit]
+      `INSERT INTO ai_requests
+         (client_id, input_length, succeeded, latency_ms, error_code, cache_hit,
+          cache_strategy, ai_api_called, prompt_tokens, completion_tokens, total_tokens,
+          estimated_cost_usd, saved_tokens, estimated_savings_usd)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      [
+        clientId, inputLength, errorCode === null, Date.now() - startedAt, errorCode,
+        cacheStrategy === "exact" || cacheStrategy === "knowledge", cacheStrategy, aiApiCalled,
+        usage.promptTokens ?? null, usage.completionTokens ?? null, usage.totalTokens ?? null,
+        usage.estimatedCostUsd ?? 0, savedTokens, savedCostUsd
+      ]
     );
   } catch (error) {
     console.error("Unable to record AI request metadata", error);

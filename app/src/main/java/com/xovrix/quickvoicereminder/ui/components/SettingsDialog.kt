@@ -127,12 +127,12 @@ fun SettingsDialog(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Notification Tone",
+                            text = "Alarm Tone",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Choose sound for reminder alerts",
+                                text = "Choose the looping sound for reminder alarms",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

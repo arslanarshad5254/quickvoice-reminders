@@ -9,14 +9,17 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import com.xovrix.quickvoicereminder.ui.QuickVoiceScreen
+import com.xovrix.quickvoicereminder.ui.onboarding.OnboardingScreen
 import com.xovrix.quickvoicereminder.ui.theme.MyApplicationTheme
 import com.xovrix.quickvoicereminder.ui.viewmodel.ReminderViewModel
 import com.xovrix.quickvoicereminder.update.UpdateManager
 import com.xovrix.quickvoicereminder.ads.AdManager
 import com.xovrix.quickvoicereminder.ads.AdsConsentManager
 import com.google.android.gms.ads.MobileAds
+import com.xovrix.quickvoicereminder.data.OnboardingManager
 
 class MainActivity : ComponentActivity() {
 
@@ -29,27 +32,37 @@ class MainActivity : ComponentActivity() {
     private var triggerVoiceOnStart by mutableStateOf(false)
     private lateinit var updateManager: UpdateManager
     private lateinit var adsConsentManager: AdsConsentManager
+    private lateinit var onboardingManager: OnboardingManager
+    private var postOnboardingServicesStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         updateManager = UpdateManager(this)
         adsConsentManager = AdsConsentManager(this)
-        adsConsentManager.gatherConsent(this) { canRequestAds ->
-            AdManager.setConsentStatus(canRequestAds)
-            if (canRequestAds) MobileAds.initialize(this) {}
-        }
-        updateManager.checkForUpdates()
+        onboardingManager = OnboardingManager(this)
+        if (onboardingManager.isCompleted) startPostOnboardingServices()
         checkVoiceIntent(intent)
         enableEdgeToEdge()
         setContent {
+            var showOnboarding by rememberSaveable { mutableStateOf(!onboardingManager.isCompleted) }
             MyApplicationTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    QuickVoiceScreen(
-                        viewModel = viewModel,
-                        autoStartVoice = triggerVoiceOnStart,
-                        onVoiceAutoStarted = { triggerVoiceOnStart = false },
-                        onPrivacyOptions = { adsConsentManager.showPrivacyOptions(this) }
-                    )
+                    if (showOnboarding) {
+                        OnboardingScreen(
+                            onComplete = {
+                                onboardingManager.markCompleted()
+                                showOnboarding = false
+                                startPostOnboardingServices()
+                            }
+                        )
+                    } else {
+                        QuickVoiceScreen(
+                            viewModel = viewModel,
+                            autoStartVoice = triggerVoiceOnStart,
+                            onVoiceAutoStarted = { triggerVoiceOnStart = false },
+                            onPrivacyOptions = { adsConsentManager.showPrivacyOptions(this) }
+                        )
+                    }
                 }
             }
         }
@@ -63,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        updateManager.onResume()
+        if (postOnboardingServicesStarted) updateManager.onResume()
         viewModel.rescheduleActiveTasks()
     }
 
@@ -84,6 +97,16 @@ class MainActivity : ComponentActivity() {
                 intent.removeExtra("OPEN_TASK_ID")
             }
         }
+    }
+
+    private fun startPostOnboardingServices() {
+        if (postOnboardingServicesStarted) return
+        postOnboardingServicesStarted = true
+        adsConsentManager.gatherConsent(this) { canRequestAds ->
+            AdManager.setConsentStatus(canRequestAds)
+            if (canRequestAds) MobileAds.initialize(this) {}
+        }
+        updateManager.checkForUpdates()
     }
 }
 

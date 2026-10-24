@@ -89,13 +89,13 @@ fun QuickVoiceScreen(
         if (!granted) viewModel.showMessage("Notifications are disabled; reminders cannot alert you")
     }
 
-    val requestReminderPermissions = {
+    val requestReminderPermissions = requestPermissions@{
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return@requestPermissions
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
                 runCatching {
@@ -103,6 +103,17 @@ fun QuickVoiceScreen(
                         data = Uri.parse("package:${context.packageName}")
                     })
                 }.onFailure { viewModel.showMessage("Enable Alarms & reminders access for precise alerts") }
+                return@requestPermissions
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            if (!notificationManager.canUseFullScreenIntent()) {
+                runCatching {
+                    context.startActivity(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                    })
+                }.onFailure { viewModel.showMessage("Allow full-screen alarms so reminders can open over the lock screen") }
             }
         }
     }
@@ -150,7 +161,7 @@ fun QuickVoiceScreen(
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.padding(bottom = if (uiState.isAdsFree) 90.dp else 140.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         },
         containerColor = MaterialTheme.colorScheme.background,

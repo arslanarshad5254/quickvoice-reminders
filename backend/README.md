@@ -1,6 +1,6 @@
 # QuickVoice AI backend - cPanel deployment
 
-Node.js API for secure AI reminder parsing. PostgreSQL stores installation metadata, AI prompts, structured responses, and request metrics. Safe repeated prompts are served from a per-installation cache before contacting the AI service.
+Node.js API for secure AI reminder parsing. PostgreSQL stores installation metadata, AI prompts, structured responses, reusable intent templates, and request metrics. Requests use an exact per-installation cache first, then sanitized semantic knowledge, and contact the AI service only when neither result is sufficiently reliable.
 
 ## Requirements
 
@@ -72,7 +72,23 @@ cd /home/CPANEL_USER/quickvoice-backend
 npm run migrate
 ```
 
-Run the migration command after every deployment that adds a migration. Migration `002_remove_billing.sql` removes billing data created by an older backend version, and `003_ai_prompt_cache.sql` creates the prompt/response history and cache.
+Run the migration command after every deployment that adds a migration. Migration `002_remove_billing.sql` removes billing data created by an older backend version, `003_ai_prompt_cache.sql` creates private prompt/response history, and `004_semantic_knowledge.sql` adds permanent reusable knowledge and usage/cost metrics.
+
+The Android app must be rebuilt after the semantic-knowledge update because it now supplies locally extracted user parameters. Older app builds remain compatible but use only exact caching.
+
+## Cache and usage reporting
+
+The backend returns `X-AI-Cache: EXACT`, `KNOWLEDGE`, or `MISS`. View daily efficiency metrics in PostgreSQL:
+
+```sql
+SELECT * FROM ai_usage_summary ORDER BY day DESC;
+```
+
+Reusable knowledge is stored without raw prompt text in `ai_knowledge`. Disable an outdated entry without deleting history:
+
+```sql
+UPDATE ai_knowledge SET active = FALSE, updated_at = NOW() WHERE id = 123;
+```
 
 ## 6. Start and verify
 

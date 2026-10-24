@@ -6,6 +6,7 @@ const { config } = require("./config.js");
 const { pool } = require("./db.js");
 const { parseReminder, parseRequestSchema, parsedReminderSchema, recordAiRequest } = require("./ai.js");
 const { createCacheKey, findCachedResponse, storePromptResponse } = require("./cache.js");
+const { findKnowledge, learnKnowledge } = require("./knowledge.js");
 
 const clientIdSchema = z.uuid();
 
@@ -68,18 +69,43 @@ api.post("/v1/ai/parse", identifyClient, limiter(config.AI_RATE_LIMIT_PER_MINUTE
   try {
     const cacheKey = createCacheKey(input.data);
     const cached = await findCachedResponse(req.clientId, cacheKey);
-    const validCached = parsedReminderSchema.safeParse(cached);
+    const validCached = parsedReminderSchema.safeParse(cached?.result);
     if (validCached.success) {
-      await recordAiRequest(req.clientId, input.data.input.length, startedAt, null, true);
-      return res.set("X-AI-Cache", "HIT").json(validCached.data);
+      await recordAiRequest(req.clientId, input.data.input.length, startedAt, {
+        cacheStrategy: "exact",
+        aiApiCalled: false,
+        savedTokens: cached.savedTokens,
+        savedCostUsd: cached.savedCostUsd
+      });
+      return res.set("X-AI-Cache", "EXACT").json(validCached.data);
     }
 
-    const result = await parseReminder(input.data);
-    await storePromptResponse(req.clientId, input.data, result, cacheKey);
-    await recordAiRequest(req.clientId, input.data.input.length, startedAt);
+    const knowledge = await findKnowledge(input.data);
+    const validKnowledge = parsedReminderSchema.safeParse(knowledge?.result);
+    if (validKnowledge.success) {
+      await recordAiRequest(req.clientId, input.data.input.length, startedAt, {
+        cacheStrategy: "knowledge",
+        aiApiCalled: false,
+        savedTokens: knowledge.savedTokens,
+        savedCostUsd: knowledge.savedCostUsd
+      });
+      return res
+        .set("X-AI-Cache", "KNOWLEDGE")
+        .set("X-AI-Similarity", knowledge.score.toFixed(3))
+        .json(validKnowledge.data);
+    }
+
+    const { result, usage } = await parseReminder(input.data);
+    await Promise.all([
+      storePromptResponse(req.clientId, input.data, result, cacheKey, usage),
+      learnKnowledge(input.data, result, usage)
+    ]);
+    await recordAiRequest(req.clientId, input.data.input.length, startedAt, { usage });
     res.set("X-AI-Cache", "MISS").json(result);
   } catch (error) {
-    await recordAiRequest(req.clientId, input.data.input.length, startedAt, error.code ?? "AI_FAILURE");
+    await recordAiRequest(req.clientId, input.data.input.length, startedAt, {
+      errorCode: error.code ?? "AI_FAILURE"
+    });
     next(error);
   }
 });

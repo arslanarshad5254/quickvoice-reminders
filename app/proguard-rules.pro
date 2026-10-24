@@ -5,17 +5,18 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# OkHttp optional dependencies
+-dontwarn org.bouncycastle.jsse.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
+-dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Moshi rules
+-keepclasseswithmembers class * {
+    @com.squareup.moshi.JsonClass <init>(...);
+}
+-keep @com.squareup.moshi.JsonClass class *
+-keepclassmembers class * {
+    @com.squareup.moshi.Json *;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile

@@ -26,8 +26,9 @@ class TaskRepository(
     }
 
     suspend fun insertTask(task: TaskEntity): Long = withContext(Dispatchers.IO) {
-        val id = taskDao.insertTask(task)
-        val savedTask = task.copy(id = id)
+        val normalizedTask = task.normalizedForStorage()
+        val id = taskDao.insertTask(normalizedTask)
+        val savedTask = normalizedTask.copy(id = id)
         if (!savedTask.isCompleted) {
             scheduler.schedule(savedTask)
         }
@@ -36,10 +37,11 @@ class TaskRepository(
     }
 
     suspend fun updateTask(task: TaskEntity) = withContext(Dispatchers.IO) {
-        taskDao.updateTask(task)
-        scheduler.cancel(task.id)
-        if (!task.isCompleted) {
-            scheduler.schedule(task)
+        val normalizedTask = task.normalizedForStorage()
+        taskDao.updateTask(normalizedTask)
+        scheduler.cancel(normalizedTask.id)
+        if (!normalizedTask.isCompleted) {
+            scheduler.schedule(normalizedTask)
         }
         notifyWidget()
     }

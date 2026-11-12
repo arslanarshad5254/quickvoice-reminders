@@ -10,7 +10,7 @@ function normalizePrompt(prompt) {
 
 function isUnsafeToCache(prompt) {
   const text = prompt.toLocaleLowerCase("en-US");
-  const rollingOffset = /\b(?:in|after)\s+(?:an?|one|two|three|four|five|six|seven|eight|nine|ten|a couple(?: of)?|a few|\d+)\s*(?:seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\b/;
+  const rollingOffset = /\b(?:(?:in|after)\s+(?:an?|one|two|three|four|five|six|seven|eight|nine|ten|a couple(?: of)?|a few|\d+)\s*(?:seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)|(?:an?|one|two|three|four|five|six|seven|eight|nine|ten|a couple(?: of)?|a few|\d+)\s*(?:seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\s+(?:later|baad|bad))\b/;
   const vagueRelativeTime = /\b(?:now|soon|shortly|in a bit|in a moment|later today|later on)\b/;
   if (rollingOffset.test(text) || vagueRelativeTime.test(text)) return true;
 

@@ -37,12 +37,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         updateManager = UpdateManager(this)
         adsConsentManager = AdsConsentManager(this)
         onboardingManager = OnboardingManager(this)
         if (onboardingManager.isCompleted) startPostOnboardingServices()
         checkVoiceIntent(intent)
-        enableEdgeToEdge()
         setContent {
             var showOnboarding by rememberSaveable { mutableStateOf(!onboardingManager.isCompleted) }
             MyApplicationTheme {

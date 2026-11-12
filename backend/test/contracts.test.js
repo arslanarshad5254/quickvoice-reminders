@@ -25,6 +25,30 @@ test("AI request contract rejects oversized transcripts", async () => {
   assert.equal(result.success, false);
 });
 
+test("AI result normalization enforces consistent scheduling fields", () => {
+  const { normalizeParsedReminder } = require("../src/ai.js");
+  const normalized = normalizeParsedReminder({
+    task: "  Call   Mom  ",
+    due_date: "2026-10-25",
+    due_time: null,
+    end_date: null,
+    end_time: null,
+    is_all_day: false,
+    category: "Personal",
+    location: null,
+    is_nag: false,
+    is_recurring: false,
+    recurrence: "weekly",
+    recurrence_days: ["MONDAY"],
+    recurrence_interval_days: null
+  });
+
+  assert.equal(normalized.task, "Call Mom");
+  assert.equal(normalized.due_time, "09:00");
+  assert.equal(normalized.recurrence, null);
+  assert.equal(normalized.recurrence_days, null);
+});
+
 test("AI cache normalizes reusable prompts within the same local day", () => {
   const { createCacheKey } = require("../src/cache.js");
   const first = createCacheKey({
@@ -55,6 +79,8 @@ test("AI cache bypasses requests whose answer changes with the current minute", 
   };
 
   assert.equal(createCacheKey({ ...context, input: "Remind me in 10 minutes" }), null);
+  assert.equal(createCacheKey({ ...context, input: "30 minute baad motor band karvana" }), null);
+  assert.equal(createCacheKey({ ...context, input: "30 minute bad motor band karvana" }), null);
   assert.equal(createCacheKey({ ...context, input: "Call the dentist at 3 PM" }), null);
 });
 

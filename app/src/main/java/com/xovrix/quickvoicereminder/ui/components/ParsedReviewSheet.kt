@@ -1,6 +1,8 @@
 package com.xovrix.quickvoicereminder.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -31,6 +35,9 @@ fun ParsedReviewSheet(
     onConfirm: (ParsedTaskResult) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val maxDialogHeight = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.height.toDp() * 0.9f
+    }
     var editableTask by remember { mutableStateOf(parsed.task) }
     var editableDueDate by remember { mutableStateOf(parsed.dueDate.orEmpty()) }
     var editableDueTime by remember { mutableStateOf(parsed.dueTime.orEmpty()) }
@@ -189,6 +196,7 @@ fun ParsedReviewSheet(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
+                .heightIn(max = maxDialogHeight)
                 .clip(RoundedCornerShape(28.dp)),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
@@ -196,6 +204,7 @@ fun ParsedReviewSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {

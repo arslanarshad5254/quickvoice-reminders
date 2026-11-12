@@ -83,19 +83,8 @@ fun QuickVoiceScreen(
         }
     }
 
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (!granted) viewModel.showMessage("Notifications are disabled; reminders cannot alert you")
-    }
-
-    val requestReminderPermissions = requestPermissions@{
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            return@requestPermissions
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    fun requestAlarmAndFullScreenAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             if (!alarmManager.canScheduleExactAlarms()) {
                 runCatching {
@@ -103,7 +92,7 @@ fun QuickVoiceScreen(
                         data = Uri.parse("package:${context.packageName}")
                     })
                 }.onFailure { viewModel.showMessage("Enable Alarms & reminders access for precise alerts") }
-                return@requestPermissions
+                return
             }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -116,6 +105,28 @@ fun QuickVoiceScreen(
                 }.onFailure { viewModel.showMessage("Allow full-screen alarms so reminders can open over the lock screen") }
             }
         }
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            // Continue after the asynchronous notification dialog. Previously the
+            // exact-alarm step was skipped, so Android could defer the reminder.
+            requestAlarmAndFullScreenAccess()
+        } else {
+            viewModel.showMessage("Notifications are disabled; reminders cannot alert you")
+        }
+    }
+
+    val requestReminderPermissions = requestPermissions@{
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            return@requestPermissions
+        }
+        requestAlarmAndFullScreenAccess()
     }
 
     // Automatically trigger voice recording when launched from widget shortcut
@@ -156,7 +167,11 @@ fun QuickVoiceScreen(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .statusBarsPadding()
+            .windowInsetsPadding(
+                WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+                )
+            )
             .imePadding(),
         snackbarHost = {
             SnackbarHost(
@@ -386,8 +401,7 @@ fun SelectionHeader(
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .statusBarsPadding(),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

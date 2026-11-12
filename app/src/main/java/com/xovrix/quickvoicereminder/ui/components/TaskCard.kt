@@ -13,7 +13,11 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.xovrix.quickvoicereminder.data.TaskEntity
 import com.xovrix.quickvoicereminder.ui.theme.*
+import kotlinx.coroutines.delay
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -41,10 +46,16 @@ fun TaskCard(
     val categoryColor = CategoryUtils.getCategoryColor(task.category)
     val categoryIcon = CategoryUtils.getCategoryIcon(task.category)
     val formattedDue = CategoryUtils.formatDueString(task.dueDate, task.dueTime)
-    val (countdownText, isOverdue) = CategoryUtils.getRelativeTimeCountdown(
-        task.dueDate,
-        task.dueTime
-    )
+    var countdown by remember(task.dueDate, task.dueTime) {
+        mutableStateOf(CategoryUtils.getRelativeTimeCountdown(task.dueDate, task.dueTime))
+    }
+    LaunchedEffect(task.dueDate, task.dueTime) {
+        while (true) {
+            countdown = CategoryUtils.getRelativeTimeCountdown(task.dueDate, task.dueTime)
+            delay(COUNTDOWN_REFRESH_MS)
+        }
+    }
+    val (countdownText, isOverdue) = countdown
 
     val cardBgColor by animateColorAsState(
         targetValue = when {
@@ -381,3 +392,5 @@ fun TaskCard(
         }
     }
 }
+
+private const val COUNTDOWN_REFRESH_MS = 30_000L

@@ -23,7 +23,7 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE isCompleted = 0 AND scheduledDateTime IS NOT NULL")
     suspend fun getAllScheduledPendingTasks(): List<TaskEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTask(task: TaskEntity): Long
 
     @Update

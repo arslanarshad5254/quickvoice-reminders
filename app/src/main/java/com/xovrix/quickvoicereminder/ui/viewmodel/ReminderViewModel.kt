@@ -300,7 +300,8 @@ class ReminderViewModel(application: Application) : AndroidViewModel(application
             recurrence = parsed.recurrence,
             recurrenceDays = parsed.recurrenceDays?.joinToString(","),
             recurrenceIntervalDays = parsed.recurrenceIntervalDays,
-            isCompleted = false
+            isCompleted = false,
+            parseSource = if (parsed.isAiParsed) "ai" else "local"
         )
         repository.insertTask(taskEntity)
     }

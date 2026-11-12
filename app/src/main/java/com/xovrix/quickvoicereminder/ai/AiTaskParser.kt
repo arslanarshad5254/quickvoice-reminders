@@ -29,7 +29,7 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
         try {
             val aiResult = backendApi?.parseReminder(trimmed, localResult)
             if (aiResult != null && aiResult.task.isNotBlank()) {
-                return@withContext validateAiResult(aiResult)
+                return@withContext validateAiResult(aiResult, localResult)
             }
         } catch (e: Exception) {
             Log.w(TAG, "AI parsing failed, falling back to local parser: ${e.message}")
@@ -39,7 +39,7 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
         localResult
     }
 
-    private fun validateAiResult(result: ParsedTaskResult): ParsedTaskResult {
+    private fun validateAiResult(result: ParsedTaskResult, localFallback: ParsedTaskResult): ParsedTaskResult {
         fun validDate(value: String?): String? = value?.takeIf {
             runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE) }.isSuccess
         }
@@ -48,22 +48,54 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
         }
         val categories = setOf("Personal", "Work", "Errands", "Health", "Finance", "General")
         val recurrenceTypes = setOf("daily", "weekly", "monthly", "yearly", "custom")
+        val normalizedDate = validDate(result.dueDate)
+            ?: localFallback.dueDate.takeIf { result.dueDate != null }
+        val normalizedTime = validTime(result.dueTime)
+            ?: localFallback.dueTime.takeIf { result.dueTime != null }
         val recurrence = result.recurrence?.lowercase()?.takeIf { it in recurrenceTypes }
+            ?: localFallback.recurrence.takeIf { result.isRecurring }
+        val recurring = result.isRecurring && recurrence != null
         val recurrenceDays = result.recurrenceDays?.mapNotNull { day ->
             runCatching { DayOfWeek.valueOf(day.uppercase()).name }.getOrNull()
         }?.distinct()?.takeIf { it.isNotEmpty() }
+        var normalizedEndDate = validDate(result.endDate)
+        var normalizedEndTime = validTime(result.endTime).takeUnless { result.isAllDay }
+        if (normalizedEndTime != null && normalizedEndDate == null) normalizedEndDate = normalizedDate
+        val startDateTime = normalizedDate?.let { date ->
+            runCatching {
+                LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(normalizedTime ?: "09:00"))
+            }.getOrNull()
+        }
+        val endDateTime = normalizedEndDate?.let { date ->
+            normalizedEndTime?.let { time ->
+                runCatching { LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(time)) }.getOrNull()
+            }
+        }
+        if (startDateTime != null && endDateTime != null && endDateTime.isBefore(startDateTime)) {
+            normalizedEndDate = null
+            normalizedEndTime = null
+        }
         return result.copy(
-            task = result.task.trim().ifBlank { "Reminder" }.take(200),
-            dueDate = validDate(result.dueDate),
-            dueTime = validTime(result.dueTime),
-            endDate = validDate(result.endDate),
-            endTime = validTime(result.endTime),
-            category = result.category.takeIf { it in categories } ?: "General",
-            location = result.location?.trim()?.take(120)?.ifBlank { null },
-            isRecurring = result.isRecurring && recurrence != null,
-            recurrence = recurrence,
-            recurrenceDays = recurrenceDays,
-            recurrenceIntervalDays = result.recurrenceIntervalDays?.takeIf { it in 1..3650 }
+            task = result.task.trim().replace(Regex("""\s+"""), " ").ifBlank {
+                localFallback.task.ifBlank { "Reminder" }
+            }.take(200),
+            dueDate = normalizedDate,
+            dueTime = when {
+                result.isAllDay -> null
+                normalizedDate == null -> null
+                else -> normalizedTime ?: "09:00"
+            },
+            endDate = normalizedEndDate,
+            endTime = normalizedEndTime,
+            category = categories.firstOrNull { it.equals(result.category, ignoreCase = true) }
+                ?: localFallback.category.takeIf { it in categories }
+                ?: "General",
+            location = result.location?.trim()?.replace(Regex("""\s+"""), " ")?.take(120)?.ifBlank { null },
+            isRecurring = recurring,
+            recurrence = recurrence.takeIf { recurring },
+            recurrenceDays = recurrenceDays.takeIf { recurring },
+            recurrenceIntervalDays = result.recurrenceIntervalDays?.takeIf { recurring && it in 1..3650 },
+            isAiParsed = true
         )
     }
 
@@ -241,6 +273,7 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
     private val numberWords: Map<String, Int> = mapOf(
         "a" to 1, "an" to 1, "one" to 1, "two" to 2, "three" to 3, "four" to 4, "five" to 5,
         "six" to 6, "seven" to 7, "eight" to 8, "nine" to 9, "ten" to 10,
+        "eleven" to 11, "twelve" to 12,
         "a couple of" to 2, "a couple" to 2, "a few" to 3
     )
 
@@ -382,6 +415,16 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
             result = applyUnit(result, compound.groupValues[1].toLong(), compound.groupValues[2])
             result = applyUnit(result, compound.groupValues[3].toLong(), compound.groupValues[4])
             return result
+        }
+
+        // Common speech-to-text output for Hinglish/Urdu reminders:
+        // "30 minute baad motor band karvana" (often transcribed as "bad").
+        val suffixRelative = Regex(
+            """\b(a couple of|a couple|a few|an?|\d+)\s*(seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\s+(?:later|baad|bad)\b"""
+        ).find(lower)
+        if (suffixRelative != null) {
+            val amount = parseAmount(suffixRelative.groupValues[1])
+            return applyUnit(now, amount.toLong(), suffixRelative.groupValues[2])
         }
 
         // Simple: "in X unit" / "after X unit" — digit or word amount
@@ -558,6 +601,20 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
     }
 
     private fun resolveTimeOfDay(lower: String): LocalTime? {
+        val spokenHour = "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|\\d{1,2}"
+        val spokenPartOfDay = "morning|afternoon|evening|night"
+        Regex(
+            """\b(?:($spokenPartOfDay)\s+(?:at\s+)?($spokenHour)|(?:at\s+)?($spokenHour)\s+(?:in\s+(?:the\s+)?)?($spokenPartOfDay))\b"""
+        ).find(lower)?.let { match ->
+            val partOfDay = (match.groupValues[1].ifBlank { match.groupValues[4] })
+            val rawHour = match.groupValues[2].ifBlank { match.groupValues[3] }
+            var hour = rawHour.toIntOrNull() ?: numberWords[rawHour] ?: return@let
+            if (hour !in 1..12) return@let
+            if (partOfDay != "morning" && hour < 12) hour += 12
+            if (partOfDay == "morning" && hour == 12) hour = 0
+            return LocalTime.of(hour, 0)
+        }
+
         Regex("""\bhalf past (\d{1,2})\b""").find(lower)?.let {
             val h = normalizeHourHeuristic(it.groupValues[1].toInt(), lower)
             return LocalTime.of(h, 30)
@@ -644,6 +701,7 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
             // relative offsets
             .replace(Regex("""(?i)\b(?:in|after)\s+(?:a couple of|a couple|a few|an?|\d+)\s*(?:seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\b"""), "")
             .replace(Regex("""(?i)\b(?:in|after)\s+\d+\s*(?:hours?|hrs?|days?|weeks?)\s+and\s+\d+\s*(?:minutes?|mins?|hours?|hrs?)\b"""), "")
+            .replace(Regex("""(?i)\b(?:a couple of|a couple|a few|an?|\d+)\s*(?:seconds?|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?)\s+(?:later|baad|bad)\b"""), "")
             .replace(Regex("""(?i)\bin a bit\b|\bshortly\b|\bin a moment\b|\bsoon\b|\blater today\b|\blater on\b|\bfirst thing tomorrow\b"""), "")
             // named days / weekdays / dates
             .replace(Regex("""(?i)\bday after tomorrow\b|\btomorrow\b|\btoday\b"""), "")
@@ -654,6 +712,7 @@ class AiTaskParser private constructor(private val backendApi: BackendApiClient?
             // week/month anchors
             .replace(Regex("""(?i)\bnext weekend\b|\bthis weekend\b|\bthe weekend\b|\bstart of the week\b|\bbeginning of the week\b|\bend of the week\b|\bin two weeks\b|\ba fortnight\b|\bin a fortnight\b|\bin a week\b|\ba week from now\b|\ba week from today\b|\bnext week\b|\bend of the month\b|\bstart of next month\b|\bnext month\b|\bend of the year\b"""), "")
             // time of day / part-of-day
+            .replace(Regex("""(?i)\b(?:(?:morning|afternoon|evening|night)\s+(?:at\s+)?(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|\d{1,2})|(?:at\s+)?(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|\d{1,2})\s+(?:in\s+(?:the\s+)?)?(?:morning|afternoon|evening|night))\b"""), "")
             .replace(Regex("""(?i)\bhalf past \d{1,2}\b|\bquarter past \d{1,2}\b|\bquarter to \d{1,2}\b|\b\d{1,2}\s*o'?clock\b"""), "")
             .replace(Regex("""(?i)\b(?:at\s+|around\s+|roughly\s+)?\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)\b"""), "")
             .replace(Regex("""(?i)\b\d{1,2}ish\b"""), "")

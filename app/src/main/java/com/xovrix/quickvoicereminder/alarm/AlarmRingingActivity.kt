@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -47,9 +50,9 @@ import java.time.format.DateTimeFormatter
 class AlarmRingingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         showOverLockScreen()
         volumeControlStream = AudioManager.STREAM_ALARM
-        enableEdgeToEdge()
 
         val taskId = intent.getLongExtra(AlarmRingingService.EXTRA_TASK_ID, -1L)
         val taskTitle = intent.getStringExtra(AlarmRingingService.EXTRA_TASK_TITLE) ?: "Reminder"
@@ -120,6 +123,7 @@ private fun AlarmScreen(
                         listOf(Color(0xFF111827), Color(0xFF312E81), Color(0xFF0F172A))
                     )
                 )
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(horizontal = 28.dp, vertical = 48.dp)
         ) {
             Column(

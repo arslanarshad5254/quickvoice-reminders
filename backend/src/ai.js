@@ -37,6 +37,43 @@ function extractJson(text) {
   return JSON.parse(cleaned);
 }
 
+function normalizeParsedReminder(result, clientParsed = null) {
+  const clean = { ...result };
+  clean.task = clean.task.trim().replace(/\s+/g, " ").slice(0, 200);
+  clean.location = clean.location?.trim().replace(/\s+/g, " ").slice(0, 120) || null;
+  if (clean.is_all_day) {
+    clean.due_time = null;
+    clean.end_time = null;
+  } else if (clean.due_date && !clean.due_time) {
+    clean.due_time = "09:00";
+  }
+  if (!clean.due_date) clean.due_time = null;
+  if (clean.end_time && !clean.end_date) clean.end_date = clean.due_date;
+  if (clean.due_date && clean.due_time && clean.end_date && clean.end_time) {
+    const start = `${clean.due_date}T${clean.due_time}`;
+    const end = `${clean.end_date}T${clean.end_time}`;
+    if (end < start) {
+      clean.end_date = null;
+      clean.end_time = null;
+    }
+  }
+  if (!clean.is_recurring) {
+    clean.recurrence = null;
+    clean.recurrence_days = null;
+    clean.recurrence_interval_days = null;
+  } else if (!clean.recurrence && clientParsed?.is_recurring) {
+    clean.recurrence = clientParsed.recurrence;
+    clean.recurrence_days = clientParsed.recurrence_days ?? null;
+    clean.recurrence_interval_days = clientParsed.recurrence_interval_days ?? null;
+  }
+  if (!clean.recurrence) {
+    clean.is_recurring = false;
+    clean.recurrence_days = null;
+    clean.recurrence_interval_days = null;
+  }
+  return parsedReminderSchema.parse(clean);
+}
+
 async function parseReminder(payload) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
@@ -51,7 +88,13 @@ async function parseReminder(payload) {
         model: config.AI_MODEL,
         messages: [
           { role: "system", content: reminderParserPrompt(payload.currentDateTime, payload.timeZone) },
-          { role: "user", content: payload.input }
+          {
+            role: "user",
+            content: JSON.stringify({
+              transcript: payload.input,
+              local_candidate: payload.clientParsed ?? null
+            })
+          }
         ],
         response_format: { type: "json_object" },
         temperature: 0.1
@@ -68,7 +111,7 @@ async function parseReminder(payload) {
       (promptTokens * config.AI_INPUT_COST_PER_MILLION +
        completionTokens * config.AI_OUTPUT_COST_PER_MILLION) / 1_000_000;
     return {
-      result: parsedReminderSchema.parse(extractJson(content)),
+      result: normalizeParsedReminder(extractJson(content), payload.clientParsed),
       usage: {
         promptTokens,
         completionTokens,
@@ -109,4 +152,10 @@ async function recordAiRequest(clientId, inputLength, startedAt, details = {}) {
   }
 }
 
-module.exports = { parseRequestSchema, parsedReminderSchema, parseReminder, recordAiRequest };
+module.exports = {
+  parseRequestSchema,
+  parsedReminderSchema,
+  normalizeParsedReminder,
+  parseReminder,
+  recordAiRequest
+};
